@@ -1,0 +1,22 @@
+# Render.com Blueprint – „New +“ → „Blueprint“ → dieses Repository wählen.
+services:
+  - type: web
+    name: spieleabend
+    runtime: node
+    plan: free            # Für dauerhaften All-Time-Score: "starter" + Disk (siehe unten)
+    buildCommand: npm install --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: DATA_DIR
+        value: ./data
+      - key: ANTHROPIC_API_KEY  # optional: KI-Richter für Synonyme
+        sync: false
+    # Mit bezahltem Plan Daten dauerhaft speichern:
+    # disk:
+    #   name: spieleabend-data
+    #   mountPath: /var/data
+    #   sizeGB: 1
+    # und DATA_DIR auf /var/data setzen.

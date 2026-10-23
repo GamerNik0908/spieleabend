@@ -1,0 +1,26 @@
+{
+  "name": "spieleabend",
+  "version": "1.0.0",
+  "description": "Online-Spieleabend: Quiz Duell, Familien-Duell, Der Dümmste fliegt",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node --test test/matcher.test.js"
+  },
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.2.0",
+    "express": "^4.22.3",
+    "htm": "^3.1.1",
+    "preact": "^10.29.8",
+    "socket.io": "^4.8.4",
+    "zod": "^4.6.7"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.4"
+  }
+}
