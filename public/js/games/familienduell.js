@@ -78,6 +78,7 @@ function Action({ st, g, pm }) {
     case 'faceoffAnswer':
     case 'play':
     case 'steal':
+      if (!g.active) return html`<div class="banner">Nächster Versuch …</div>`;
       return html`<div class="col" style="gap:10px">
         <div class="banner">
           ${g.phase === 'steal' && html`<span class="pill bad" style="margin-right:6px">🦝 Klau-Versuch</span>`}
@@ -141,7 +142,7 @@ export function FamilienDuellView({ st, g }) {
     <${TeamSide} t=${g.teams[0]} g=${g} pm=${pm} />
     <div class="fd-center col" style="gap:14px">
       <div class="row" style="justify-content:center;gap:8px">
-        <span class="pill accent">📊 Familien-Duell</span>
+        <span class="fun" style="font-size:24px;text-shadow:0 3px 0 var(--ink)">📊 Familien-Duell</span>
         ${!isFinal && g.round > 0 && html`<span class="pill">Runde ${g.round}/${g.rounds}${g.multiplier > 1 ? ' · ×2' : ''}</span>`}
         ${!isFinal && g.pot > 0 && html`<span class="pill ok">Im Topf: ${g.pot * g.multiplier}</span>`}
       </div>

@@ -123,7 +123,7 @@ io.on('connection', (socket) => {
     if (!r) throw new Error('Raum nicht gefunden. Code prüfen!');
     leaveCurrent();
     const p = r.addPlayer(data?.name, socket);
-    r.announce(`👋 ${p.name} ist dabei`, 'join');
+    io.to(r.code).emit('toast', { text: `👋 ${p.name} ist dabei` });
     return { code: r.code, token: p.token };
   }, cb));
 
@@ -142,7 +142,7 @@ io.on('connection', (socket) => {
     const id = pid();
     const n = r.name(id);
     r.removePlayer(id);
-    r.announce(`🚪 ${n} hat den Raum verlassen`, 'leave');
+    io.to(r.code).emit('toast', { text: `🚪 ${n} hat den Raum verlassen` });
     return {};
   }, cb));
 

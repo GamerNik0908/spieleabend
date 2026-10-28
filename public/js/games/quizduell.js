@@ -37,7 +37,7 @@ function Board({ st, g }) {
     if (isOp && confirm('Als Operator für das Team wählen?')) gameOp({ type: 'pickFor', col, row });
   };
   const colorOf = (id) => g.teams.find((t) => t.id === id)?.color;
-  return html`<div class="qd-board" style=${`grid-template-columns:repeat(${cols},1fr)`}>
+  return html`<div class="qd-board" style=${`grid-template-columns:repeat(${cols},minmax(0,1fr))`}>
     ${g.board.map((c) => html`<div class="qd-head" key=${c.id}><span class="ic">${c.icon}</span>${c.name}</div>`)}
     ${g.board[0].cells.map((_, ri) => g.board.map((c, ci) => {
       const cell = c.cells[ri];
@@ -75,10 +75,14 @@ function QuestionCard({ st, g, pm }) {
     <div class=${`qtext ${isEmoji ? 'emoji' : ''}`}>${cur.q}</div>
 
     ${(cur.stage === 'answer' || cur.stage === 'steal') && html`<div class="col" style="gap:12px">
-      <div class="banner">
-        ${cur.stage === 'steal' && html`<span class="pill bad" style="margin-right:6px">🚨 Gebuzzert!</span>`}
-        <b style=${`color:${ansTeam?.color}`}>${pm[cur.answerer]?.name}</b> antwortet für ${ansTeam?.name}
-        · <${Countdown} timer=${g.timers.answer} />
+      <div class="row" style="justify-content:center;gap:14px">
+        <${Avatar} p=${pm[cur.answerer]} size=${64} />
+        <div style="text-align:left">
+          ${cur.stage === 'steal' && html`<span class="pill bad">🚨 Gebuzzert!</span>`}
+          <div class="fun" style="font-size:24px;text-shadow:0 3px 0 var(--ink)">${pm[cur.answerer]?.name}</div>
+          <div class="muted">antwortet für <b style=${`color:${ansTeam?.color}`}>${ansTeam?.name}</b></div>
+        </div>
+        <div class="fun" style="font-size:44px;margin-left:10px;text-shadow:0 4px 0 var(--ink)"><${Countdown} timer=${g.timers.answer} /></div>
       </div>
       <${TimerBar} timer=${g.timers.answer} />
       ${cur.judging ? html`<div class="center"><div class="typing">„${cur.input}“</div><${Judging} /></div>`
@@ -110,11 +114,11 @@ export function QuizDuellView({ st, g }) {
   const showQ = g.cur && ['answer', 'buzz', 'steal', 'reveal'].includes(g.phase);
   const activeTeam = showQ ? g.cur.teamId : g.turn;
   return html`<div class="stage">
-    <div class="row" style="justify-content:center"><span class="pill accent">⚡ Quiz Duell · Runde ${g.round}/${g.rounds}${g.round > 1 ? ' · doppelte Punkte' : ''}</span></div>
+    <div class="game-title"><span class="t">⚡ Quiz Duell</span><span class="pill accent">Runde ${g.round}/${g.rounds}</span>${g.round > 1 && html`<span class="pill bad">Doppelte Punkte!</span>`}</div>
     <${Scorebar} g=${g} pm=${pm} active=${activeTeam} />
     ${g.phase === 'intro' && html`<div class="banner">Das Brett für Runde ${g.round} – gleich geht's los · <${Countdown} timer=${g.timers.phase} /></div>`}
     ${g.phase === 'pick' && html`<div class="banner">
-      ${g.canPick ? html`<b style="color:var(--accent)">Du bist dran – wähle ein Feld!</b>` : html`<b style=${`color:${turnTeam?.color}`}>${pm[g.picker]?.name}</b> wählt für ${turnTeam?.name}`}
+      ${g.canPick ? html`<span class="big">Du bist dran – wähl ein Feld!</span>` : html`<b style=${`color:${turnTeam?.color}`}>${pm[g.picker]?.name}</b> wählt für ${turnTeam?.name}`}
       · <${Countdown} timer=${g.timers.pick} warn=${8} />
     </div>`}
     ${showQ ? html`<${QuestionCard} st=${st} g=${g} pm=${pm} />` : g.board && html`<${Board} st=${st} g=${g} />`}

@@ -95,7 +95,7 @@ export function DuemmsteView({ st, g }) {
   const order = [...g.players].sort((a, b) => (g.alive.includes(b) - g.alive.includes(a)));
   return html`<div class="stage">
     <div class="dm-top">
-      <div><span class="pill accent">🧠 Der Dümmste fliegt</span> <span class="pill">${title}</span></div>
+      <div class="row wrap"><span class="fun" style="font-size:24px;color:var(--yellow);text-shadow:0 3px 0 #000">🧠 Der Dümmste fliegt</span><span class="pill accent">${title}</span></div>
       <div class="dm-clock">${clockTimer && !g.duel ? html`<${Countdown} timer=${clockTimer} warn=${10} />` : g.phase === 'voteReveal' ? '🗳️' : '⏱'}</div>
       <div style="text-align:right"><span class="pill">${g.alive.length} von ${g.players.length} im Spiel</span></div>
     </div>

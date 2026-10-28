@@ -257,14 +257,23 @@ export class Duemmste extends Game {
     this.room.clearAllTimers();
     const alive = this.alive();
     const out = [...this.eliminated].reverse().map((e) => e.pid);
-    const ordered = [...alive.sort((a, b) => this.lives[b] - this.lives[a]), ...out];
-    const units = ordered.filter((pid) => this.room.players.has(pid)).map((pid, i) => ({
-      label: this.name(pid),
-      color: null,
-      score: this.total[pid]?.c || 0,
-      rankOverride: alive.includes(pid) ? 1 : i + 1,
-      profileIds: [this.room.players.get(pid).profileId],
-    }));
+    // Überlebende nach Leben, dann nach richtigen Antworten (wichtig, wenn vorzeitig beendet wird)
+    const correct = (pid) => this.total[pid]?.c || 0;
+    alive.sort((a, b) => this.lives[b] - this.lives[a] || correct(b) - correct(a));
+    const ordered = [...alive, ...out].filter((pid) => this.room.players.has(pid));
+    const units = [];
+    ordered.forEach((pid, i) => {
+      const prev = units[i - 1];
+      const tied = prev && alive.includes(pid) && alive.includes(ordered[i - 1])
+        && this.lives[pid] === this.lives[ordered[i - 1]] && correct(pid) === correct(ordered[i - 1]);
+      units.push({
+        label: this.name(pid),
+        color: null,
+        score: correct(pid),
+        rankOverride: tied ? prev.rankOverride : i + 1,
+        profileIds: [this.room.players.get(pid).profileId],
+      });
+    });
     store.markUsed('duemmste', this.usedIds);
     this.room.finishGame(units, { scoreLabel: 'richtig' });
   }

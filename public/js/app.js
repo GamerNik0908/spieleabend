@@ -30,9 +30,20 @@ socket.on('announce', (a) => {
   announceStore.set((list) => [...list, { ...a, at: Date.now() }].slice(-5));
   play('announce');
 });
+// Große Stempel quer über den Bildschirm (RICHTIG / FALSCH / ✕)
+let stampId = 0;
+const stampStore = { v: null, subs: new Set(), set(x) { this.v = x; this.subs.forEach((f) => f(x)); } };
+function showStamp(kind) {
+  const id = ++stampId;
+  stampStore.set({ id, kind });
+  setTimeout(() => stampId === id && stampStore.set(null), 1250);
+}
 socket.on('fx', (f) => {
   play(f.kind);
   if (f.kind === 'win') confetti();
+  const game = stateStore.get()?.game?.type;
+  if (f.kind === 'correct') showStamp('ok');
+  if (f.kind === 'wrong') showStamp(game === 'familienduell' ? 'x' : 'bad');
 });
 socket.on('kicked', () => {
   session.clear();
@@ -63,33 +74,33 @@ function Home() {
 
   return html`<div class="home">
     <div class="hero rise">
-      <h1>Spiele<span class="grad">abend</span> 🎲</h1>
-      <p>Drei Spiele, ein Raum, alle von überall. Einer startet als Operator – und spielt trotzdem mit.</p>
+      <h1><span class="w1">Spiele</span><span class="w2">abend!</span></h1>
+      <p>Drei Gameshows, ein Raum, alle von überall. 🎤</p>
     </div>
-    <div class="card rise" style="max-width:520px;margin:0 auto 18px">
-      <label class="field">Dein Name
-        <input class="input big" value=${name} maxlength="20" placeholder="z. B. Niklas"
+    <div class="card name-card rise">
+      <label class="field">Wie heißt du?
+        <input class="input big" value=${name} maxlength="20" placeholder="Dein Name …"
           onInput=${(e) => setName(e.target.value)} onKeyDown=${(e) => e.key === 'Enter' && go(code ? 'join' : 'create')} />
       </label>
     </div>
     <div class="home-grid">
-      <div class="card col rise">
-        <h3>🎬 Neuen Spieleabend starten</h3>
-        <p class="muted small" style="margin:0">Du wirst Operator: Du wählst die Spiele, kannst pausieren, korrigieren und Bilder verteilen – und spielst selbst mit.</p>
+      <div class="card c-create rise">
+        <h3>🎬 Neuen Abend starten</h3>
+        <p>Du wirst <b>Operator</b>: Du wählst die Spiele, pausierst, korrigierst und verteilst Bilder – und spielst trotzdem mit.</p>
         <div class="spacer"></div>
-        <button class="btn primary lg block" disabled=${busy || !connected} onClick=${() => go('create')}>Raum erstellen</button>
+        <button class="btn primary lg block go" disabled=${busy || !connected} onClick=${() => go('create')}>Raum erstellen</button>
       </div>
-      <div class="card col rise">
-        <h3>🚪 Einem Raum beitreten</h3>
+      <div class="card c-join rise">
+        <h3>🚪 Mitspielen</h3>
         <input class="input code" value=${code} maxlength="4" placeholder="CODE"
           onInput=${(e) => setCode(e.target.value.toUpperCase())} onKeyDown=${(e) => e.key === 'Enter' && go('join')} />
         <button class="btn lg block" disabled=${busy || !connected} onClick=${() => go('join')}>Beitreten</button>
       </div>
     </div>
     <div class="game-strip">
-      <div class="card tight"><div class="emoji">⚡</div><b>Quiz Duell</b><div class="muted small">Spielbrett, Kategorien, Buzzer</div></div>
-      <div class="card tight"><div class="emoji">📊</div><b>Familien-Duell</b><div class="muted small">Errate die Top-Antworten</div></div>
-      <div class="card tight"><div class="emoji">🧠</div><b>Der Dümmste fliegt</b><div class="muted small">Schnellfragen & Abstimmung</div></div>
+      <div class="card tight" style="background:linear-gradient(160deg,#5b8dff,#2f6bff)"><span class="emoji">⚡</span><b>Quiz Duell</b><div class="small">Brett, Kategorien, Buzzer</div></div>
+      <div class="card tight" style="background:linear-gradient(160deg,#ff77a6,#ff3d7f)"><span class="emoji">📊</span><b>Familien-Duell</b><div class="small">Errate die Top-Antworten</div></div>
+      <div class="card tight" style="background:linear-gradient(160deg,#ffe066,#f2b705);color:#2a1300"><span class="emoji">🧠</span><b>Der Dümmste fliegt</b><div class="small">Schnellfragen & Abstimmung</div></div>
     </div>
     ${!connected && html`<p class="center muted" style="margin-top:18px">Verbinde mit dem Server …</p>`}
   </div>`;
@@ -126,6 +137,14 @@ function Announcements() {
   </div>`;
 }
 
+function Stamp() {
+  const [v, setV] = useState(null);
+  useEffect(() => { stampStore.subs.add(setV); return () => stampStore.subs.delete(setV); }, []);
+  if (!v) return null;
+  const label = v.kind === 'ok' ? 'RICHTIG!' : v.kind === 'bad' ? 'FALSCH!' : '✕';
+  return html`<div class="stamp-wrap"><div class=${`stamp ${v.kind}`} key=${v.id}>${label}</div></div>`;
+}
+
 function Toasts() {
   const list = useStore(toastStore);
   return html`<div class="toasts">${list.map((t) => html`<div class=${`toast ${t.kind}`} key=${t.id}>${t.text}</div>`)}</div>`;
@@ -135,7 +154,7 @@ function PauseScreen({ st }) {
   if (!st.paused) return null;
   return html`<div class="pause-screen">
     <div>
-      <div class="big">⏸ Pause</div>
+      <div class="big">PAUSE</div>
       <p class="muted" style="font-size:18px">Der Operator hat das Spiel kurz angehalten.</p>
       ${st.me.isOperator && html`<button class="btn primary lg" onClick=${() => op('resume')}>▶ Weiter spielen</button>`}
     </div>
@@ -196,8 +215,12 @@ function App() {
   useEffect(() => {
     if (st?.code) history.replaceState(null, '', `/?raum=${st.code}`);
   }, [st?.code]);
+  // Jedes Spiel hat seine eigene Bühnenfarbe
+  const theme = st?.screen === 'game' ? st.game?.type : '';
+  useEffect(() => { document.body.dataset.game = theme || ''; }, [theme]);
   return html`<div>
     ${st ? html`<${Room} st=${st} />` : html`<div class="app"><main class="main"><${Home} /></main></div>`}
+    <${Stamp} />
     <${Announcements} />
     <${Toasts} />
   </div>`;

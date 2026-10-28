@@ -51,13 +51,12 @@ const OPTION_DEFS = {
 function PlayerList({ st, onPickImage }) {
   const isOp = st.me.isOperator;
   return html`<div class="player-list">
-    ${st.players.map((p) => html`<div class=${`player-row ${p.id === st.me.id ? 'me' : ''}`} key=${p.id}>
-      <${Avatar} p=${p} size=${40} />
-      <div style="min-width:0;flex:1">
-        <div class="name">${p.name} ${p.isOperator ? html`<span class="crown" title="Operator">👑</span>` : ''}</div>
-        <div class="tiny muted">${p.connected ? `${p.allTime} All-Time-Punkte` : 'offline'}</div>
-      </div>
-      ${isOp && html`<div class="row" style="gap:4px">
+    ${st.players.map((p, i) => html`<div class=${`player-tile ${p.id === st.me.id ? 'me' : ''}`} key=${p.id} style=${`animation-delay:${i * 40}ms`}>
+      ${p.isOperator && html`<span class="crown" title="Operator">👑</span>`}
+      <${Avatar} p=${p} size=${64} />
+      <div class="name">${p.name}</div>
+      <div class="tiny muted">${p.connected ? `${p.allTime} Pkt.` : 'offline'}</div>
+      ${isOp && html`<div class="row" style="gap:4px;justify-content:center">
         <button class="btn xs ghost" title="Bild zuweisen" onClick=${() => onPickImage(p.id)}>🖼️</button>
         ${!p.isOperator && html`<button class="btn xs ghost" title="Zum Operator machen" onClick=${() => confirm(`${p.name} zum Operator machen? Du verlierst die Steuerung.`) && op('makeOperator', { pid: p.id })}>👑</button>`}
         ${p.id !== st.me.id && html`<button class="btn xs ghost" title="Entfernen" onClick=${() => confirm(`${p.name} aus dem Raum entfernen?`) && op('kick', { pid: p.id })}>✕</button>`}
@@ -149,7 +148,7 @@ function GameSetup({ st }) {
     : st.gameType === 'duemmste' && n < 3 ? 'Der Dümmste fliegt macht erst ab 3 Spielern richtig Spaß (zu zweit geht es direkt ins Finale).' : '';
   return html`<div class="col" style="gap:16px">
     <div class="games-pick">
-      ${Object.entries(GAME_INFO).map(([key, g]) => html`<div key=${key}
+      ${Object.entries(GAME_INFO).map(([key, g]) => html`<div key=${key} data-g=${key}
         class=${`game-card ${st.gameType === key ? 'active' : ''} ${isOp ? '' : 'readonly'}`}
         onClick=${() => isOp && st.gameType !== key && op('setGame', { game: key })}>
         <div class="emoji">${g.emoji}</div><h3>${g.title}</h3><p>${g.desc}</p>
@@ -158,14 +157,14 @@ function GameSetup({ st }) {
     <div class="card">
       <div class="row wrap" style="margin-bottom:12px"><h3 style="margin:0">${info.emoji} ${info.title}</h3><div class="spacer"></div>
         ${!isOp && html`<span class="pill">Einstellungen macht ${opName}</span>`}</div>
-      <ul class="muted small" style="margin:0 0 14px;padding-left:18px">${info.rules.map((r) => html`<li>${r}</li>`)}</ul>
+      <ul class="rules">${info.rules.map((r, i) => html`<li data-n=${i + 1}>${r}</li>`)}</ul>
       <${Options} st=${st} />
     </div>
     <${Teams} st=${st} />
     ${warn && html`<div class="pill bad" style="align-self:flex-start">${warn}</div>`}
     ${isOp
-      ? html`<button class="btn primary lg" onClick=${() => op('start')}>▶ ${info.title} starten</button>`
-      : html`<div class="card center muted">Warte, bis ${opName} das Spiel startet … 🍿</div>`}
+      ? html`<button class="btn primary lg go" style="font-size:26px;padding:18px" onClick=${() => op('start')}>▶ ${info.title} starten!</button>`
+      : html`<div class="card center"><div class="fun" style="font-size:24px">🍿 Gleich geht's los …</div><div class="muted">${opName} startet das Spiel</div></div>`}
   </div>`;
 }
 
@@ -318,16 +317,24 @@ export function Lobby({ st }) {
   const [tab, setTab] = useState('spiel');
   const [selected, setSelected] = useState(null);
   const pickImage = (pid) => { setSelected(pid); setTab('bilder'); };
+  const copyInvite = async () => {
+    const link = `${location.origin}/?raum=${st.code}`;
+    try { await navigator.clipboard.writeText(link); toast('Einladungslink kopiert! 🎉'); } catch { toast(link); }
+  };
   const tabs = [['spiel', '🎮 Spiel'], ['bilder', '🖼️ Bilder'], ['score', '🏆 All-Time'], ['daten', '💾 Daten']];
   return html`<div class="lobby">
     <aside class="col" style="gap:16px">
-      <div class="card">
-        <div class="row" style="margin-bottom:10px"><h3 style="margin:0">Spieler</h3><span class="pill">${st.players.length}</span></div>
-        <${PlayerList} st=${st} onPickImage=${pickImage} />
-        <p class="tiny muted" style="margin:12px 0 0">Einladen: Code <b>${st.code}</b> oder Link oben am Code kopieren.</p>
+      <div class="card room-code-card">
+        <div class="lbl">Raumcode</div>
+        <div class="code">${st.code}</div>
+        <button class="btn sm pink" onClick=${copyInvite}>🔗 Einladungslink kopieren</button>
       </div>
       <div class="card">
-        <h3>🏆 All-Time</h3>
+        <div class="row" style="margin-bottom:12px"><h3 style="margin:0">Spieler</h3><span class="pill accent">${st.players.length}</span></div>
+        <${PlayerList} st=${st} onPickImage=${pickImage} />
+      </div>
+      <div class="card">
+        <h3>🏆 Bestenliste</h3>
         <${Leaderboard} st=${st} />
       </div>
     </aside>
