@@ -17,6 +17,7 @@ const OPTION_LIMITS = {
   spion: { rounds: [1, 12], clueRounds: [1, 3], clueSeconds: [10, 60], voteSeconds: [20, 180], guessSeconds: [10, 60] },
   witzbold: { rounds: [1, 3], answerSeconds: [30, 180], voteSeconds: [10, 45], final: 'bool' },
   schaetzen: { rounds: [3, 20], answerSeconds: [10, 60] },
+  gleichdenker: { rounds: [3, 20], answerSeconds: [10, 90] },
 };
 
 export function handleOp(room, by, a) {

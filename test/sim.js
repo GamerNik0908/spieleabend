@@ -77,6 +77,7 @@ const fast = {
   spion: { rounds: 2, clueRounds: 1, clueSeconds: 10, voteSeconds: 20, guessSeconds: 10 },
   witzbold: { rounds: 1, answerSeconds: 30, voteSeconds: 10 },
   schaetzen: { rounds: 4, answerSeconds: 10 },
+  gleichdenker: { rounds: 4, answerSeconds: 10 },
 }[game] || {};
 for (const [key, value] of Object.entries(fast)) await opx('setOption', { key, value });
 await sleep(200);
@@ -183,6 +184,7 @@ while (Date.now() - t0 < 6 * 60e3) {
       if (g.phase === 'finalAnswer' && !g.final.myAnswer && key('fa')) b.emit('act', { type: 'answer', text: `Finale von ${b.name}` });
       if (g.phase === 'finalVote' && g.final.myVote == null && key('fv')) { const idx = g.final.answers.map((_, i) => i).filter((i) => i !== g.final.mineIdx); b.emit('act', { type: 'vote', side: pick(idx) }); }
     }
+    if (g.type === 'gleichdenker' && g.canAnswer && !g.myAnswer && key(`gd${g.round}`)) b.emit('act', { type: 'answer', text: pick(['Erdbeere', 'Erdbeeren', 'Kiwi', 'Mango']) });
     if (g.type === 'schaetzen' && g.canGuess && g.myGuess == null && key(`e${g.round}`)) {
       const a = schaetz.get(g.q) || 100;
       b.emit('act', { type: 'answer', text: String(Math.round(a * (0.5 + Math.random()))) });

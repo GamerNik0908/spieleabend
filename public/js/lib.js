@@ -319,7 +319,7 @@ export function ScoreStrip({ st, g, mark = {} }) {
 /** Kopfzeile mit Spieltitel, Runde und großem Timer */
 export function GameHead({ icon, title, sub, timer, warn = 5 }) {
   return html`<div class="game-head">
-    <div class="gh-title"><span class="gh-icon">${icon}</span><span class="fun">${title}</span>${sub && html`<span class="pill accent">${sub}</span>`}</div>
+    <div class="gh-title"><${GameIcon} emoji=${icon} size=${42} /><span class="fun">${title}</span>${sub && html`<span class="pill accent">${sub}</span>`}</div>
     ${timer && html`<div class="gh-timer"><${Countdown} timer=${timer} warn=${warn} /></div>`}
   </div>`;
 }
@@ -330,4 +330,29 @@ export function DoneRow({ st, ids, done }) {
   return html`<div class="done-row">${ids.map((pid) => pm[pid] && html`<div key=${pid} class=${`done-chip ${done.includes(pid) ? 'on' : ''}`} title=${pm[pid].name}>
     <${Avatar} p=${pm[pid]} size=${40} />${done.includes(pid) && html`<span class="tick">✓</span>`}
   </div>`)}</div>`;
+}
+
+// ---------- Eigene Grafiken (mit Emoji als Platzhalter) ----------
+export const GAME_EMOJI = {
+  quizduell: '⚡', familienduell: '📊', duemmste: '🧠', montagsmaler: '🎨', luegenbaron: '🤥',
+  spion: '🕵️', witzbold: '😂', schaetzen: '🎯', gleichdenker: '🧩',
+};
+const EMOJI_GAME = Object.fromEntries(Object.entries(GAME_EMOJI).map(([k, v]) => [v, k]));
+const missing = new Set();
+
+/** Bild aus /assets, fällt still auf Emoji zurück, wenn es (noch) nicht existiert */
+export function AssetImg({ src, fallback, alt = '' }) {
+  const [bad, setBad] = useState(missing.has(src));
+  if (bad) return fallback;
+  return html`<img src=${src} alt=${alt} onError=${() => { missing.add(src); setBad(true); }} />`;
+}
+
+export function GameIcon({ id, emoji, size = 44 }) {
+  const game = id || EMOJI_GAME[emoji];
+  const e = emoji || GAME_EMOJI[game] || '🎲';
+  const [bad, setBad] = useState(!game || missing.has(`/assets/games/${game}.png`));
+  const src = `/assets/games/${game}.png`;
+  return html`<span class=${`gicon ${bad ? '' : 'img'}`} data-g=${game} style=${`--s:${size}px`}>
+    ${bad ? e : html`<img src=${src} alt="" onError=${() => { missing.add(src); setBad(true); }} />`}
+  </span>`;
 }

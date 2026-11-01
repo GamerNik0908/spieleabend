@@ -1,5 +1,5 @@
 // Tutorial-Folien je Spiel. Der Operator blättert, alle sehen dieselbe Folie.
-import { html, op, useEffect } from './lib.js';
+import { html, op, useEffect, AssetImg } from './lib.js';
 
 export const TUTORIALS = {
   quizduell: [
@@ -48,6 +48,12 @@ export const TUTORIALS = {
     { icon: '🏆', title: 'Witzbold-Bonus', text: 'Pro Stimme gibt es Punkte. Bekommt eine Antwort ALLE Stimmen, gibt es den Witzbold-Bonus obendrauf.' },
     { icon: '🔥', title: 'Finale', text: 'Zum Schluss beantworten alle denselben Satzanfang. Jeder stimmt für die beste fremde Antwort – Punkte ×3!' },
   ],
+  gleichdenker: [
+    { icon: '🧩', title: 'Gleichdenker', text: 'Ihr spielt in Teams. Jede Runde kommt eine offene Frage, z. B. „Nenne ein Obst – außer Apfel oder Banane“.' },
+    { icon: '🤫', title: 'Geheim antworten', text: 'Jeder tippt seine Antwort geheim ein. Absprechen ist verboten – ihr müsst erraten, was eure Teamkollegen schreiben!' },
+    { icon: '🎯', title: 'Punkte', text: 'Alle im Team gleich: 3 Punkte. Zwei gleich (bei drei): 1 Punkt. Alle verschieden: 0. Bei größeren Teams wird anteilig gestaffelt.' },
+    { icon: '🧠', title: 'Taktik', text: 'Nehmt ihr die offensichtliche Standardantwort – oder setzt ihr auf euren Insider? Kleine Schreibfehler zählen trotzdem als gleich.' },
+  ],
   schaetzen: [
     { icon: '🎯', title: 'Schätzmeister', text: 'Jede Runde eine Frage mit einer Zahl als Antwort – Höhen, Jahre, Mengen, Kurioses.' },
     { icon: '🤔', title: 'Schätzen', text: 'Tippt eure Schätzung ein, z. B. „1500“, „2,5 Mio“ oder „zweitausend“. Bis zum Ende der Zeit darfst du sie ändern.' },
@@ -79,7 +85,7 @@ export function TutorialOverlay({ st }) {
   return html`<div class="tut-back">
     <div class="tut-card" key=${`${t.game}-${step}`}>
       <div class="tut-head"><span class="pill accent">So geht's</span><span class="tiny muted">${step + 1} / ${slides.length}</span></div>
-      <div class="tut-icon">${s.icon}</div>
+      <div class="tut-icon">${step === 0 ? html`<${AssetImg} src=${`/assets/games/${t.game}.png`} fallback=${s.icon} />` : s.icon}</div>
       <h2 class="tut-title">${s.title}</h2>
       <p class="tut-text">${s.text}</p>
       <div class="tut-dots">${slides.map((_, i) => html`<i key=${i} class=${i === step ? 'on' : ''}></i>`)}</div>

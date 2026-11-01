@@ -36,6 +36,7 @@ export const LUEGENBARON = await load('./luegenbaron.js');
 export const SPION = (await load('./spion.js')).filter((c) => c.words?.length);
 export const WITZBOLD = await load('./witzbold.js');
 export const SCHAETZEN = await load('./schaetzen.js');
+export const GLEICHDENKER = await load('./gleichdenker.js');
 
 export const catalogStats = () => ({
   montagsmaler: MONTAGSMALER.length,
@@ -43,6 +44,7 @@ export const catalogStats = () => ({
   spion: SPION.reduce((n, c) => n + c.words.length, 0),
   witzbold: WITZBOLD.length,
   schaetzen: SCHAETZEN.length,
+  gleichdenker: GLEICHDENKER.length || FAMILIENDUELL.length,
   duemmste: DUEMMSTE.length,
   quizduell: QUIZ_CATEGORIES.reduce((n, c) => n + c.questions.length, 0),
   quizKategorien: QUIZ_CATEGORIES.length,

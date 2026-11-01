@@ -1,6 +1,6 @@
 # 🎲 Spieleabend
 
-Eine Website für euren Online-Spieleabend mit acht Spielen:
+Eine Website für euren Online-Spieleabend mit neun Spielen:
 
 | Spiel | Prinzip |
 |---|---|
@@ -11,6 +11,7 @@ Eine Website für euren Online-Spieleabend mit acht Spielen:
 | 🤥 **Lügenbaron** | Wahre, absurde Tatsache mit Lücke – jeder erfindet eine Lüge, dann sucht jeder die Wahrheit. Punkte fürs Finden und fürs Reinlegen. |
 | 🕵️ **Der Spion** | Alle kennen das geheime Wort, nur der Spion nicht. Reihum Hinweise, dann Abstimmung – enttarnter Spion darf das Wort raten. (ab 3) |
 | 😂 **Witzbold** | Je zwei beantworten denselben lustigen Satzanfang, alle anderen stimmen ab. Einstimmig = Witzbold-Bonus. Finale für alle. (ab 3) |
+| 🧩 **Gleichdenker** | Teams beantworten geheim dieselbe offene Frage – Punkte nur für gleiche Antworten im Team (alle gleich = 3, zwei gleich = 1). Passt sich jeder Teamgröße an. |
 | 🎯 **Schätzmeister** | Alle schätzen dieselbe Zahl, Auflösung auf dem Zahlenstrahl. Am nächsten dran gewinnt, Volltreffer gibt Bonus. |
 
 **Gesprochen wird nebenbei (Discord, TeamSpeak …)** – die Antworten werden getippt und automatisch geprüft.
@@ -45,6 +46,10 @@ npm start
 Dann im Browser **http://localhost:3000** öffnen. Im selben WLAN können andere über `http://<deine-IP>:3000` mitspielen.
 
 ---
+
+## Eigene Grafiken
+
+Logo und Spiel-Icons lassen sich ersetzen – siehe [GRAFIKEN.md](GRAFIKEN.md). Ohne Grafiken werden Emojis angezeigt.
 
 ## Online stellen – damit jeder von überall mitspielen kann
 

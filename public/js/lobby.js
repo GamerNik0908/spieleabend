@@ -1,6 +1,6 @@
 // Lobby: Spieler, Spielauswahl, Einstellungen, Teams – plus Operator-Bereiche
 // für Bilder, All-Time-Score und Daten.
-import { html, useState, useEffect, useRef, op, session, toast, Avatar, teamStyle, playerMap } from './lib.js';
+import { html, useState, useEffect, useRef, op, session, toast, Avatar, teamStyle, playerMap, GameIcon } from './lib.js';
 
 export const GAME_INFO = {
   quizduell: {
@@ -62,6 +62,14 @@ Object.assign(GAME_INFO, {
       'Zum Schluss das Finale: alle beantworten denselben Satzanfang, Punkte ×3. (ab 3 Spielern)',
     ],
   },
+  gleichdenker: {
+    emoji: '🧩', title: 'Gleichdenker', desc: 'Alle antworten geheim – Punkte nur, wenn ihr im Team gleich denkt.',
+    rules: [
+      'Jede Runde eine offene Frage, z. B. „Nenne ein Möbelstück“. Jeder tippt geheim eine Antwort.',
+      'Punkte gibt es für gleiche Antworten im Team: alle gleich = 3, zwei gleich (bei drei) = 1, alle verschieden = 0.',
+      'Es geht nicht ums Richtige, sondern darum, wie deine Leute denken: Standardantwort oder Insider?',
+    ],
+  },
   schaetzen: {
     emoji: '🎯', title: 'Schätzmeister', desc: 'Keiner weiß es genau – wer schätzt am nächsten dran?',
     rules: [
@@ -95,6 +103,7 @@ export const OPTION_DEFS = {
   ],
   witzbold: [['rounds', 'Runden', 1], ['answerSeconds', 'Schreibzeit (Sek.)', 10], ['voteSeconds', 'Abstimmzeit (Sek.)', 5], ['final', 'Finale', 'bool']],
   schaetzen: [['rounds', 'Fragen', 1], ['answerSeconds', 'Schätzzeit (Sek.)', 5]],
+  gleichdenker: [['rounds', 'Fragen', 1], ['answerSeconds', 'Antwortzeit (Sek.)', 5]],
   duemmste: [
     ['lives', 'Leben', 1], ['roundSeconds', 'Rundenzeit (Sek.)', 30], ['answerSeconds', 'Antwortzeit (Sek.)', 1],
     ['voteSeconds', 'Abstimmzeit (Sek.)', 5],
@@ -174,7 +183,7 @@ function Teams({ st }) {
     <div class="row wrap" style="margin-bottom:12px">
       <h3 style="margin:0">Teams</h3>
       <div class="spacer"></div>
-      ${isOp && st.gameType === 'quizduell' && html`<span class="small muted">Anzahl</span>
+      ${isOp && ['quizduell', 'gleichdenker'].includes(st.gameType) && html`<span class="small muted">Anzahl</span>
         <${Stepper} value=${count} step=${1} onChange=${(v) => op('teams', { count: Math.max(1, Math.min(4, v)) })} />`}
       ${isOp && html`<button class="btn sm" onClick=${() => op('teams', { mode: 'random' })}>🎲 Neu mischen</button>
         <button class="btn sm" title="Verteilt nach All-Time-Punkten, damit die Teams ausgeglichen sind" onClick=${() => op('teams', { mode: 'fair' })}>⚖️ Fair mischen</button>`}
@@ -206,11 +215,11 @@ function GameSetup({ st }) {
       ${Object.entries(GAME_INFO).map(([key, g]) => html`<div key=${key} data-g=${key}
         class=${`game-card ${st.gameType === key ? 'active' : ''} ${isOp ? '' : 'readonly'}`}
         onClick=${() => isOp && st.gameType !== key && op('setGame', { game: key })}>
-        <div class="emoji">${g.emoji}</div><h3>${g.title}</h3><p>${g.desc}</p>
+        <${GameIcon} id=${key} size=${52} /><h3>${g.title}</h3><p>${g.desc}</p>
       </div>`)}
     </div>
     <div class="card">
-      <div class="row wrap" style="margin-bottom:12px"><h3 style="margin:0">${info.emoji} ${info.title}</h3><div class="spacer"></div>
+      <div class="row wrap" style="margin-bottom:14px"><${GameIcon} id=${st.gameType} size=${40} /><h3 style="margin:0">${info.title}</h3><div class="spacer"></div>
         ${!isOp && html`<span class="pill">Einstellungen macht ${opName}</span>`}</div>
       <ul class="rules">${info.rules.map((r, i) => html`<li data-n=${i + 1}>${r}</li>`)}</ul>
       <${Options} st=${st} />

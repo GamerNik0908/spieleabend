@@ -12,6 +12,7 @@ import { Luegenbaron } from './games/luegenbaron.js';
 import { Spion } from './games/spion.js';
 import { Witzbold } from './games/witzbold.js';
 import { Schaetzen } from './games/schaetzen.js';
+import { Gleichdenker } from './games/gleichdenker.js';
 import { catalogStats } from './data/index.js';
 
 export const GAMES = {
@@ -23,6 +24,7 @@ export const GAMES = {
   spion: { cls: Spion, title: 'Der Spion', teams: false, min: 3 },
   witzbold: { cls: Witzbold, title: 'Witzbold', teams: false, min: 3 },
   schaetzen: { cls: Schaetzen, title: 'Schätzmeister', teams: false },
+  gleichdenker: { cls: Gleichdenker, title: 'Gleichdenker', teams: true, min: 2 },
 };
 
 const token = () => crypto.randomBytes(16).toString('hex');
@@ -44,6 +46,7 @@ export class Room {
       spion: Spion.defaultOptions(),
       witzbold: Witzbold.defaultOptions(),
       schaetzen: Schaetzen.defaultOptions(),
+      gleichdenker: Gleichdenker.defaultOptions(),
     };
     this.teams = null;
     this.teamCount = null;

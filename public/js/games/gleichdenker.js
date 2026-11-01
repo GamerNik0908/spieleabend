@@ -1,0 +1,47 @@
+// Ansicht „Gleichdenker“: geheim antworten, dann teamweise Auflösung mit gleichen Antworten.
+import { html, useState, act, gameOp, Avatar, TimerBar, AnswerInput, GameHead, DoneRow, teamStyle, playerMap } from '../lib.js';
+
+function TeamScores({ g, pm }) {
+  return html`<div class="scorebar">${g.teams.map((t) => html`<div key=${t.id} class="team-score" style=${teamStyle(t.color)}>
+    <div class="avatars">${t.members.map((pid) => pm[pid] && html`<${Avatar} key=${pid} p=${pm[pid]} size=${30} />`)}</div>
+    <div><div class="tname">${t.name}</div><div class="tpts">${t.score}</div></div>
+  </div>`)}</div>`;
+}
+
+function TeamResult({ st, g, t, pm }) {
+  const r = g.result[t.id];
+  const [sel, setSel] = useState([]);
+  const isOp = st.me.isOperator;
+  const toggle = (pid) => setSel((s) => (s.includes(pid) ? s.filter((x) => x !== pid) : [...s, pid]));
+  const label = r.pts >= 3 ? 'Alle gleich!' : r.best >= 2 ? `${r.best} gleich` : 'Alle verschieden';
+  return html`<div class=${`gd-team ${r.pts >= 3 ? 'perfect' : ''}`} style=${teamStyle(t.color)}>
+    <div class="gd-team-head"><span class="gd-team-name">${t.name}</span><span class="gd-pts">+${r.pts}</span></div>
+    <div class="gd-label">${label}</div>
+    <div class="gd-groups">${r.groups.map((grp, gi) => html`<div key=${gi} class=${`gd-group ${grp.pids.length > 1 ? 'match' : ''}`}>
+      ${grp.pids.map((pid, i) => html`<button key=${pid} class=${`gd-answer ${sel.includes(pid) ? 'sel' : ''}`} disabled=${!isOp} onClick=${() => toggle(pid)}>
+        <${Avatar} p=${pm[pid]} size=${30} /><span class="gd-name">${pm[pid]?.name}</span><b>${grp.texts[i] || '—'}</b>
+      </button>`)}
+    </div>`)}</div>
+    ${isOp && sel.length >= 2 && html`<button class="btn sm primary" onClick=${() => { gameOp({ type: 'merge', teamId: t.id, pids: sel }); setSel([]); }}>Als gleich werten (${sel.length})</button>`}
+  </div>`;
+}
+
+export function GleichdenkerView({ st, g }) {
+  const pm = playerMap(st);
+  const myTeam = g.teams.find((t) => t.members.includes(st.me.id));
+  return html`<div class="stage">
+    <${GameHead} icon="🧩" title="Gleichdenker" sub=${g.round ? `Frage ${g.round}/${g.rounds}` : null} timer=${g.phase === 'answer' ? g.timers.answer : null} warn=${5} />
+    <${TeamScores} g=${g} pm=${pm} />
+    ${g.phase === 'intro' && html`<div class="card center"><h2 style="font-size:32px">Denkt wie euer Team</h2><p class="muted">Jeder antwortet geheim. Punkte gibt es nur, wenn ihr im Team dasselbe schreibt – alle gleich: 3 Punkte, zwei gleich: 1 Punkt.</p></div>`}
+    ${g.q && g.phase !== 'intro' && html`<div class="card center gd-q"><div class="gd-qtext">${g.q}</div>
+      ${myTeam && html`<div class="small muted" style="margin-top:8px">Dein Team: ${myTeam.members.map((p) => pm[p]?.name).join(', ')}</div>`}</div>`}
+    ${g.phase === 'answer' && html`<div class="card">
+      <div style="margin-bottom:12px"><${TimerBar} timer=${g.timers.answer} /></div>
+      ${g.myAnswer && html`<div class="banner" style="margin-bottom:10px">Deine Antwort: <b>${g.myAnswer}</b> – du kannst sie noch ändern.</div>`}
+      <${AnswerInput} key=${`gd-${g.round}`} live=${false} placeholder="Was schreiben die anderen wohl?" button=${g.myAnswer ? 'Ändern' : 'Abgeben'} onSubmit=${(text) => act({ type: 'answer', text })} />
+    </div>
+    <${DoneRow} st=${st} ids=${g.teams.flatMap((t) => t.members)} done=${g.answered} />`}
+    ${g.phase === 'reveal' && g.result && html`<div class="gd-results">${g.teams.map((t) => g.result[t.id] && html`<${TeamResult} key=${t.id} st=${st} g=${g} t=${t} pm=${pm} />`)}</div>
+      ${st.me.isOperator && html`<p class="tiny muted center">Operator: Antworten anklicken und „Als gleich werten“, z. B. bei Sofa = Couch.</p>`}`}
+  </div>`;
+}

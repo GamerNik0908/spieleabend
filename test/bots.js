@@ -83,6 +83,7 @@ for (let i = 0; i < Number(count); i++) {
       if (g.phase === 'finalAnswer' && !g.final.myAnswer && once('fa')) { await wait(rnd(3000, 9000)); s.emit('act', { type: 'answer', text: pick(['Ein sprechender Kühlschrank', 'Helene Fischer auf Rollschuhen', 'Ein Kaktus als Haustier']) }); }
       if (g.phase === 'finalVote' && g.final.myVote == null && once('fv')) { await wait(rnd(2000, 5000)); const idx = g.final.answers.map((_, i) => i).filter((i) => i !== g.final.mineIdx); s.emit('act', { type: 'vote', side: pick(idx) }); }
     }
+    if (g.type === 'gleichdenker' && g.canAnswer && !g.myAnswer && once(`gd${g.round}`)) { await wait(rnd(3000, 9000)); s.emit('act', { type: 'answer', text: pick(['Erdbeere', 'Kiwi', 'Mango', 'Sofa', 'Hund', 'Pizza']) }); }
     if (g.type === 'schaetzen' && g.canGuess && g.myGuess == null && once(`e${g.round}`)) {
       await wait(rnd(3000, 9000));
       const a = schaetz.get(g.q) || 100;

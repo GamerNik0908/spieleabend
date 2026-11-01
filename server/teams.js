@@ -9,6 +9,10 @@ export const TEAM_STYLES = [
 /** Empfohlene Teamanzahl pro Spiel und Spielerzahl */
 export function defaultTeamCount(game, n) {
   if (game === 'familienduell') return 2;
+  if (game === 'gleichdenker') {
+    if (n <= 3) return 1; // zu wenige für zwei Teams: alle zusammen
+    return Math.max(2, Math.round(n / 3)); // Wunschgröße 3: 4→2×2, 6→2×3, 7→4+3, 8→3/3/2, 9→3×3
+  }
   if (game === 'quizduell') {
     if (n <= 3) return Math.max(1, n); // jeder für sich
     return Math.min(4, Math.max(2, Math.ceil(n / 3))); // 4→2×2, 6→2×3, 7→3,2,2, 9→3×3, 12→4×3

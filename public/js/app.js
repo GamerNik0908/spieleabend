@@ -1,7 +1,7 @@
 // Einstieg: Verbindung, Startseite, Raum-Rahmen und globale Overlays.
 import {
   html, render, useState, useEffect, useStore, stateStore, typingStore, toastStore, announceStore, connStore,
-  socket, session, emit, toast, play, confetti, syncClock, sound, pref, setPref, op,
+  socket, session, emit, toast, play, confetti, syncClock, sound, pref, setPref, op, GameIcon, AssetImg, GAME_EMOJI,
 } from './lib.js';
 import { Lobby } from './lobby.js';
 import { Results } from './results.js';
@@ -16,6 +16,7 @@ import { LuegenbaronView } from './games/luegenbaron.js';
 import { SpionView } from './games/spion.js';
 import { WitzboldView } from './games/witzbold.js';
 import { SchaetzenView } from './games/schaetzen.js';
+import { GleichdenkerView } from './games/gleichdenker.js';
 
 // ---------- Socket-Verdrahtung ----------
 socket.on('connect', async () => {
@@ -60,6 +61,13 @@ socket.on('kicked', () => {
 socket.on('toast', (t) => toast(t.text, t.kind));
 
 // ---------- Startseite ----------
+const HOME_GAMES = [
+  ['quizduell', 'Quiz Duell', 'Brett & Buzzer'], ['familienduell', 'Familien-Duell', 'Top-Antworten'],
+  ['duemmste', 'Der Dümmste fliegt', 'Schnellfragen'], ['montagsmaler', 'Montagsmaler', 'Zeichnen & Raten'],
+  ['luegenbaron', 'Lügenbaron', 'Lügen & Wahrheit'], ['spion', 'Der Spion', 'Wer bluffte?'],
+  ['witzbold', 'Witzbold', 'Lustige Duelle'], ['schaetzen', 'Schätzmeister', 'Wer liegt näher?'],
+  ['gleichdenker', 'Gleichdenker', 'Denkt wie euer Team'],
+];
 function Home() {
   const params = new URLSearchParams(location.search);
   const [name, setName] = useState(pref('name', ''));
@@ -81,8 +89,9 @@ function Home() {
 
   return html`<div class="home">
     <div class="hero rise">
-      <h1><span class="w1">Spiele</span><span class="w2">abend!</span></h1>
-      <p>Drei Gameshows, ein Raum, alle von überall. 🎤</p>
+      <span class="hero-logo-wrap"><${AssetImg} src="/assets/logo.png" fallback=${null} alt="Spieleabend" /></span>
+      <h1><span class="w1">Spiele</span><span class="w2">abend</span></h1>
+      <p>Neun Gameshows für euren Abend – ein Raum, alle von überall.</p>
     </div>
     <div class="card name-card rise">
       <label class="field">Wie heißt du?
@@ -92,22 +101,20 @@ function Home() {
     </div>
     <div class="home-grid">
       <div class="card c-create rise">
-        <h3>🎬 Neuen Abend starten</h3>
+        <h3>Neuen Abend starten</h3>
         <p>Du wirst <b>Operator</b>: Du wählst die Spiele, pausierst, korrigierst und verteilst Bilder – und spielst trotzdem mit.</p>
         <div class="spacer"></div>
         <button class="btn primary lg block go" disabled=${busy || !connected} onClick=${() => go('create')}>Raum erstellen</button>
       </div>
       <div class="card c-join rise">
-        <h3>🚪 Mitspielen</h3>
+        <h3>Mitspielen</h3>
         <input class="input code" value=${code} maxlength="4" placeholder="CODE"
           onInput=${(e) => setCode(e.target.value.toUpperCase())} onKeyDown=${(e) => e.key === 'Enter' && go('join')} />
         <button class="btn lg block" disabled=${busy || !connected} onClick=${() => go('join')}>Beitreten</button>
       </div>
     </div>
     <div class="game-strip">
-      <div class="card tight" style="background:linear-gradient(160deg,#5b8dff,#2f6bff)"><span class="emoji">⚡</span><b>Quiz Duell</b><div class="small">Brett, Kategorien, Buzzer</div></div>
-      <div class="card tight" style="background:linear-gradient(160deg,#ff77a6,#ff3d7f)"><span class="emoji">📊</span><b>Familien-Duell</b><div class="small">Errate die Top-Antworten</div></div>
-      <div class="card tight" style="background:linear-gradient(160deg,#ffe066,#f2b705);color:#2a1300"><span class="emoji">🧠</span><b>Der Dümmste fliegt</b><div class="small">Schnellfragen & Abstimmung</div></div>
+      ${HOME_GAMES.map(([id, t, d]) => html`<div class="card tight" key=${id}><${GameIcon} id=${id} size=${40} /><div><b>${t}</b><div class="small">${d}</div></div></div>`)}
     </div>
     ${!connected && html`<p class="center muted" style="margin-top:18px">Verbinde mit dem Server …</p>`}
   </div>`;
@@ -194,7 +201,7 @@ function TopBar({ st }) {
     history.replaceState(null, '', '/');
   };
   return html`<div class="topbar">
-    <div class="logo"><span class="dice">🎲</span><span class="txt">Spieleabend</span></div>
+    <div class="logo"><span class="dice"><${AssetImg} src="/assets/logo.png" fallback="🎲" /></span><span class="txt">Spieleabend</span></div>
     <span class="code-chip" title="Einladungslink kopieren" onClick=${copy}>${st.code}</span>
     <span class=${`dot ${connected ? '' : 'off'}`} title=${connected ? 'Verbunden' : 'Getrennt – verbinde neu …'}></span>
     ${st.ai && html`<span class="pill op small" title="Antworten, die die normale Erkennung nicht versteht, prüft eine KI">🤖 KI-Richter</span>`}
@@ -207,7 +214,7 @@ function TopBar({ st }) {
 
 const GAME_VIEWS = {
   quizduell: QuizDuellView, familienduell: FamilienDuellView, duemmste: DuemmsteView,
-  montagsmaler: MontagsmalerView, luegenbaron: LuegenbaronView, spion: SpionView, witzbold: WitzboldView, schaetzen: SchaetzenView,
+  montagsmaler: MontagsmalerView, luegenbaron: LuegenbaronView, spion: SpionView, witzbold: WitzboldView, schaetzen: SchaetzenView, gleichdenker: GleichdenkerView,
 };
 
 function Room({ st }) {
