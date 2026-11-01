@@ -204,6 +204,10 @@ export function handleOp(room, by, a) {
         room.opAnnounce(by, room.manualAdvance ? 'schaltet auf „Operator klickt weiter“ 👆' : 'schaltet auf automatisches Weiterspielen ⏩');
         if (!room.manualAdvance && room.waiting) room.advance();
       }
+      if ('revealSeq' in a) {
+        room.revealSeq = !!a.revealSeq;
+        room.opAnnounce(by, room.revealSeq ? 'deckt Antworten jetzt Spieler für Spieler auf 🎭' : 'deckt Antworten jetzt alle gleichzeitig auf');
+      }
       if ('aiOn' in a) {
         room.aiOn = !!a.aiOn;
         room.opAnnounce(by, room.aiOn ? 'schaltet den KI-Richter an 🤖' : 'schaltet den KI-Richter aus');

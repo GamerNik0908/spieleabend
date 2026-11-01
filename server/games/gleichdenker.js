@@ -49,6 +49,7 @@ export class Gleichdenker extends Game {
     this.merges = {};
     this.splits = {};
     this.aiPairs = {};
+    this.manual = {};
     this.roundMembers = Object.fromEntries(this.teams.map((t) => [t.id, t.members.filter((p) => this.connected(p))]));
     this.phase = 'answer';
     this.room.setTimer('answer', this.opts.answerSeconds * 1000, () => this.reveal());
@@ -68,6 +69,20 @@ export class Gleichdenker extends Game {
   /** Antworten eines Teams gruppieren und Punkte berechnen */
   scoreTeam(team) {
     const members = (this.roundMembers?.[team.id] || team.members).filter((p) => team.members.includes(p));
+    // Vom Operator festgelegte Gruppen haben Vorrang vor Auto/KI
+    if (this.manual[team.id]) {
+      const placed = new Set();
+      const list = [];
+      for (const g of this.manual[team.id]) {
+        const pids = g.filter((p) => members.includes(p) && this.answers[p] && !placed.has(p));
+        pids.forEach((p) => placed.add(p));
+        if (pids.length) list.push({ pids, text: this.answers[pids[0]], ki: false, op: pids.length > 1 });
+      }
+      for (const p of members) if (!placed.has(p)) list.push({ pids: [p], text: this.answers[p] || null, ki: false });
+      list.sort((a, b) => b.pids.length - a.pids.length);
+      const k = list.length && list[0].text ? list[0].pids.length : 0;
+      return { groups: list, best: k, size: members.length, pts: groupPoints(k, members.length) };
+    }
     const parent = Object.fromEntries(members.map((p) => [p, p]));
     const find = (x) => (parent[x] === x ? x : (parent[x] = find(parent[x])));
     const union = (a, b) => { parent[find(a)] = find(b); };
@@ -123,7 +138,7 @@ export class Gleichdenker extends Game {
     const best = Math.max(...Object.values(this.result).map((r) => r.pts));
     this.room.fx(best >= 3 ? 'win' : best > 0 ? 'win-round' : 'wrong');
     // Teams nacheinander aufdecken – das beste zuletzt
-    this.room.step(1000 + 2800 * this.teams.length + 3000, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Frage');
+    this.room.step(this.room.revealSeq ? 1000 + this.teams.reduce((n, t) => n + (this.result[t.id]?.size || 0) * 1500 + 1500, 0) + 2500 : 3000, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Frage');
     this.changed();
   }
 
@@ -144,7 +159,20 @@ export class Gleichdenker extends Game {
 
   op(by, a) {
     const r = this.room;
-    if (a.type === 'split') {
+    if (a.type === 'regroup') {
+      // Operator legt fest, welche Antworten zusammengehören: groups = [[pid, pid], [pid], …]
+      if (this.phase !== 'reveal') throw new Error('Nur bei der Auflösung möglich.');
+      const team = this.team(a.teamId);
+      if (!team || !Array.isArray(a.groups)) throw new Error('Nicht gefunden.');
+      const before = this.result[team.id].pts;
+      this.manual[team.id] = a.groups.map((g) => (Array.isArray(g) ? g.filter((p) => team.members.includes(p)) : []));
+      const now = this.scoreTeam(team);
+      team.score += now.pts - before;
+      this.result[team.id] = now;
+      const desc = now.groups.filter((g) => g.pids.length > 1).map((g) => g.pids.map((p) => `„${this.answers[p]}“`).join(' = ')).join(' · ') || 'alle verschieden';
+      r.opAnnounce(by, `bewertet ${team.name} neu: ${now.pts} ${now.pts === 1 ? 'Punkt' : 'Punkte'}`, desc);
+      r.addTime('phase', 4000);
+    } else if (a.type === 'split') {
       // Operator: eine Antwort zählt doch NICHT als gleich
       if (this.phase !== 'reveal') throw new Error('Nur bei der Auflösung möglich.');
       const team = this.team(a.teamId);

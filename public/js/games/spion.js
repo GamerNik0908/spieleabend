@@ -1,5 +1,5 @@
 // Ansicht „Der Spion“: Geheime Rolle, Hinweise reihum, Abstimmung, Spion rät.
-import { html, useState, act, Avatar, TimerBar, TypingView, AnswerInput, ScoreStrip, GameHead, playerMap } from '../lib.js';
+import { html, useState, act, gameOp, Avatar, TimerBar, TypingView, AnswerInput, ScoreStrip, GameHead, playerMap } from '../lib.js';
 
 function RoleCard({ g, big }) {
   const [hidden, setHidden] = useState(false);
@@ -53,6 +53,7 @@ export function SpionView({ st, g }) {
         <div class="muted" style="font-size:17px">${g.result.why}</div>
         <div style="margin-top:10px">Spion war <b>${pm[g.spy]?.name}</b> · das Wort war <b class="fun" style="font-size:22px;color:var(--yellow)">${g.word}</b>${g.guess ? html` · geraten: „${g.guess}“` : ''}</div>
         <div class="row wrap" style="justify-content:center;margin-top:10px">${Object.entries(g.result.delta).map(([pid, d]) => html`<span class="pill ok" key=${pid}>${pm[pid]?.name} +${d}</span>`)}</div>
+        ${st.me.isOperator && html`<div class="op-fix"><button class="btn sm" onClick=${() => gameOp({ type: 'flipResult' })}>✏️ Falsch gewertet? Ausgang umkehren (${g.result.caught ? 'Spion gewinnt' : 'Spion geschnappt'})</button></div>`}
       </div>`}
       <${Clues} st=${st} g=${g} pm=${pm} votable=${g.canVote} />`}
   </div>`;

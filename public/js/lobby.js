@@ -152,6 +152,8 @@ export function RoomSwitches({ st }) {
   return html`<div class="col" style="gap:8px">
     <label class="switch-row"><span><b>Operator klickt weiter</b><div class="tiny muted">Nach Auflösungen geht es erst weiter, wenn du klickst (Enter). Aus = automatisch.</div></span>
       <input type="checkbox" checked=${st.manualAdvance} onChange=${(e) => op('setRoom', { manualAdvance: e.target.checked })} /></label>
+    <label class="switch-row"><span><b>Antworten nacheinander aufdecken</b><div class="tiny muted">Spieler für Spieler (bei Teams erst Team 1, dann Team 2) – der Schlechteste zuerst. Aus = alle gleichzeitig.</div></span>
+      <input type="checkbox" checked=${st.revealSeq} onChange=${(e) => op('setRoom', { revealSeq: e.target.checked })} /></label>
     <label class="switch-row"><span><b>KI-Richter${st.aiName ? ` (${st.aiName})` : ''}</b><div class="tiny muted">${st.ai ? 'Prüft Synonyme & Umschreibungen in allen Spielen (Gleichdenker, Montagsmaler, Quiz …). Korrigieren kannst du immer.' : 'Kein API-Key gesetzt – siehe Anleitung.'}</div></span>
       <input type="checkbox" checked=${st.ai && st.aiOn} disabled=${!st.ai} onChange=${(e) => op('setRoom', { aiOn: e.target.checked })} /></label>
   </div>`;

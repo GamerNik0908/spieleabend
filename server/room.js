@@ -57,6 +57,7 @@ export class Room {
     this.tutorial = null; // { game, step } – vom Operator gesteuerte Erklär-Folien
     this.aiOn = true; // KI-Richter für diesen Raum (falls ein Key gesetzt ist)
     this.manualAdvance = true; // Operator klickt „Weiter“ statt automatischem Weiterspringen
+    this.revealSeq = true; // Antworten Spieler für Spieler aufdecken (statt alle gleichzeitig)
     this.waiting = null; // { label, cb } – wartet auf den Operator
     this.typing = null;
     this.flushQueued = false;
@@ -417,6 +418,7 @@ export class Room {
       waiting: this.waiting ? { label: this.waiting.label } : null,
       nextLabel: this.timers.has('phase') ? this.waitLabel || null : null,
       manualAdvance: this.manualAdvance,
+      revealSeq: this.revealSeq,
       aiOn: this.aiOn,
       game: this.game ? this.game.view(pid, isOp) : null,
       leaderboard: store.leaderboard(),

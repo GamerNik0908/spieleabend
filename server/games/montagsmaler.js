@@ -110,10 +110,10 @@ export class Montagsmaler extends SoloGame {
     if (this.guessed[pid]) return;
     text = String(text || '').trim().slice(0, 60);
     if (!text) return;
-    const spec = { a: this.word.w, alt: this.word.alt };
+    const spec = { a: this.word.w, alt: this.word.alt, strict: true };
     let hit = matchAnswer(text, spec);
     let by = 'auto';
-    // Nicht direkt erkannt? KI prüft auf echte Synonyme (z. B. Couch = Sofa)
+    // Nicht direkt erkannt? KI prüft streng: nur genau der Begriff (Couch = Sofa ja, Schneeball ≠ Schneemann)
     if (!hit && this.room.aiOn && normalize(text).length >= 3) {
       const turn = this.turnId;
       const r = await judgeSingle('Welcher Begriff wird gerade gezeichnet?', spec, text, { mode: 'draw' });

@@ -1,7 +1,7 @@
 // Einstieg: Verbindung, Startseite, Raum-Rahmen und globale Overlays.
 import {
   html, render, useState, useEffect, useStore, stateStore, typingStore, toastStore, announceStore, connStore,
-  socket, session, emit, toast, play, confetti, syncClock, sound, pref, setPref, op, GameIcon, AssetImg, GAME_EMOJI,
+  socket, session, emit, toast, play, confetti, syncClock, sound, pref, setPref, op, GameIcon, AssetImg, GAME_EMOJI, revealPrefs,
 } from './lib.js';
 import { Lobby } from './lobby.js';
 import { Results } from './results.js';
@@ -32,7 +32,10 @@ socket.on('connect', async () => {
   }
 });
 socket.on('disconnect', () => connStore.set(false));
-socket.on('state', (st) => stateStore.set(st));
+socket.on('state', (st) => {
+  revealPrefs.sequential = st.revealSeq !== false;
+  stateStore.set(st);
+});
 socket.on('typing', (t) => typingStore.set(t));
 socket.on('announce', (a) => {
   announceStore.set((list) => [...list, { ...a, at: Date.now() }].slice(-5));

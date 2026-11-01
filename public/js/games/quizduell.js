@@ -49,7 +49,7 @@ function Board({ st, g }) {
   </div>`;
 }
 
-function Attempts({ cur, pm, g }) {
+function Attempts({ st, cur, pm, g }) {
   if (!cur.attempts?.length) return null;
   return html`<div class="col" style="gap:6px;max-width:640px;margin:14px auto 0">
     ${cur.attempts.map((a) => html`<div key=${a.id} class=${`result-line ${a.ok ? 'ok' : 'bad'}`}>
@@ -57,6 +57,8 @@ function Attempts({ cur, pm, g }) {
       <span class="muted">„${a.input || '–'}“</span><div class="spacer"></div>
       ${a.ok ? html`<span class="pill ok">+${a.value}</span>` : a.penalty ? html`<span class="pill bad">−${a.penalty}</span>` : html`<span class="pill bad">falsch</span>`}
       <${ByTag} by=${a.by} />
+      ${st.me.isOperator && (a.ok ? html`<button class="btn xs bad" title="Doch falsch" onClick=${() => gameOp({ type: 'override', id: a.id, ok: false })}>✗</button>`
+        : html`<button class="btn xs ok" title="Doch richtig" onClick=${() => gameOp({ type: 'override', id: a.id, ok: true })}>✓</button>`)}
     </div>`)}
   </div>`;
 }
@@ -104,7 +106,7 @@ function QuestionCard({ st, g, pm }) {
         ? html`<b style=${`color:${team(cur.winner)?.color}`}>${team(cur.winner)?.name}</b> holt ${cur.value} Punkte 🎉`
         : 'Niemand bekommt die Punkte'}</div>
     </div>`}
-    <${Attempts} cur=${cur} pm=${pm} g=${g} />
+    <${Attempts} st=${st} cur=${cur} pm=${pm} g=${g} />
   </div>`;
 }
 

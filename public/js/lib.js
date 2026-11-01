@@ -363,9 +363,11 @@ export function GameIcon({ id, emoji, size = 44 }) {
  * Schrittweise Auflösung, synchron für alle: zählt anhand des laufenden Phasen-Timers,
  * wie viele Elemente schon gezeigt werden (bleibt auch nach Neuladen richtig).
  */
+export const revealPrefs = { sequential: true };
+
 export function useStagger(timer, count, stepMs = 1400, delayMs = 600) {
   useTick(!!timer && !timer.paused, 150);
-  if (!timer) return count;
+  if (!timer || !revealPrefs.sequential) return count;
   const elapsed = timer.duration - remaining(timer);
   return Math.max(0, Math.min(count, Math.floor((elapsed - delayMs) / stepMs) + 1));
 }

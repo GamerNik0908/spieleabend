@@ -47,7 +47,7 @@ function Center({ st, g, pm }) {
   const l = g.last;
   if (l && ['reveal', 'duelReveal'].includes(g.phase)) {
     return html`<div class="dm-question" key=${`r-${l.id}`}>
-      <div class="who">${pm[l.pid]?.name}: <span style=${`color:${l.ok ? 'var(--ok)' : 'var(--bad)'}`}>„${l.input || '–'}“ ${l.ok ? '✓' : '✗'}</span> <${ByTag} by=${l.by} /></div>
+      <div class="who">${pm[l.pid]?.name}: <span style=${`color:${l.ok ? 'var(--ok)' : 'var(--bad)'}`}>„${l.input || '–'}“ ${l.ok ? '✓' : '✗'}</span> <${ByTag} by=${l.by} /> ${st.me.isOperator && (l.ok ? html`<button class="btn xs bad" title="Doch falsch" onClick=${() => gameOp({ type: 'override', id: l.id, ok: false })}>✗ doch falsch</button>` : html`<button class="btn xs ok" title="Doch richtig" onClick=${() => gameOp({ type: 'override', id: l.id, ok: true })}>✓ doch richtig</button>`)}</div>
       <div class="qtext" style="font-size:clamp(18px,2.4vw,26px)">${l.q}</div>
       <div class="big-answer">${l.a}</div>
     </div>`;
@@ -126,7 +126,7 @@ export function DuemmsteView({ st, g: raw }) {
       <div class="section-title">Diese Runde</div>
       <div class="feed">${g.feed.map((e) => html`<div key=${e.id} class=${`result-line ${e.ok ? 'ok' : 'bad'}`}>
         <b>${pm[e.pid]?.name}</b><span class="muted small" style="flex:1">${e.q}</span>
-        <span class="small">„${e.input || '–'}“</span>${!e.ok && html`<span class="small faint">(${e.a})</span>`}<${ByTag} by=${e.by} />
+        <span class="small">„${e.input || '–'}“</span>${!e.ok && html`<span class="small faint">(${e.a})</span>`}<${ByTag} by=${e.by} />${st.me.isOperator && (e.ok ? html`<button class="btn xs bad" title="Doch falsch" onClick=${() => gameOp({ type: 'override', id: e.id, ok: false })}>✗ doch falsch</button>` : html`<button class="btn xs ok" title="Doch richtig" onClick=${() => gameOp({ type: 'override', id: e.id, ok: true })}>✓ doch richtig</button>`)}
       </div>`)}</div>
     </div>`}
   </div>`;

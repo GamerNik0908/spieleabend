@@ -1,5 +1,5 @@
 // Ansicht „Schätzmeister“: Zahl schätzen, Auflösung auf dem Zahlenstrahl.
-import { html, act, Avatar, TimerBar, AnswerInput, ScoreStrip, GameHead, DoneRow, playerMap, useStagger } from '../lib.js';
+import { html, act, gameOp, Avatar, TimerBar, AnswerInput, ScoreStrip, GameHead, DoneRow, playerMap, useStagger } from '../lib.js';
 
 const fmt = (n) => (Math.abs(n) >= 1e4 || !Number.isInteger(n) ? n.toLocaleString('de-DE', { maximumFractionDigits: 2 }) : String(n));
 
@@ -47,6 +47,10 @@ export function SchaetzenView({ st, g }) {
         <span class="lb-rank">${e.rank}.</span><${Avatar} p=${pm[e.pid]} size=${28} /><b>${pm[e.pid]?.name}</b>
         <span class="muted">${fmt(e.value)} <span class="tiny">(${e.diff === 0 ? 'exakt!' : `${fmt(Math.round(e.diff * 100) / 100)} daneben`})</span></span>
         <div class="spacer"></div>${e.bullseye && html`<span class="pill accent">🎯 Volltreffer</span>`}<span class=${`pill ${e.pts ? 'ok' : ''}`}>+${e.pts}</span>
+        ${st.me.isOperator && html`<button class="btn xs ghost" title="Schätzung korrigieren" onClick=${() => {
+          const v = prompt(`Schätzung von ${pm[e.pid]?.name} ändern:`, String(e.value));
+          if (v != null && v.trim() !== '') gameOp({ type: 'setGuess', pid: e.pid, value: Number(v.includes(',') ? v.replace(/\./g, '').replace(',', '.') : v) });
+        }}>✏️</button>`}
       </div>`)}</div>
     </div>`}
   </div>`;

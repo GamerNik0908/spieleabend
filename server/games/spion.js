@@ -127,12 +127,12 @@ export class Spion extends SoloGame {
     if (this.guessing) return;
     this.room.clearTimer('answer');
     this.guess = String(text || '').trim().slice(0, 40);
-    let ok = !timeout && this.guess && matchAnswer(this.guess, { a: this.word });
+    let ok = !timeout && this.guess && matchAnswer(this.guess, { a: this.word, strict: true });
     // KI prüft Synonyme/Umschreibungen des geheimen Wortes
     if (!ok && !timeout && this.guess && this.room.aiOn) {
       this.guessing = true;
       this.changed();
-      const r = await judgeSingle(`Geheimes Wort aus der Kategorie „${this.cat}“`, { a: this.word }, this.guess, { mode: 'draw' });
+      const r = await judgeSingle(`Geheimes Wort aus der Kategorie „${this.cat}“`, { a: this.word, strict: true }, this.guess, { mode: 'draw' });
       this.guessing = false;
       if (this.phase !== 'spyGuess') return;
       ok = r.ok;
@@ -142,6 +142,16 @@ export class Spion extends SoloGame {
   }
 
   finishRound(caught, why) {
+    this.applyRound(caught, why);
+    this.phase = 'result';
+    this.room.fx(caught ? 'win-round' : 'lose');
+    this.room.step(7000, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Runde');
+    this.changed();
+  }
+
+  /** Punkte einer Runde vergeben (bei Korrektur vorher die alten abziehen) */
+  applyRound(caught, why) {
+    if (this.result?.delta) for (const [p, d] of Object.entries(this.result.delta)) this.scores[p] = (this.scores[p] || 0) - d;
     const delta = {};
     const add = (p, n) => { delta[p] = (delta[p] || 0) + n; this.scores[p] = (this.scores[p] || 0) + n; };
     if (caught) {
@@ -154,10 +164,6 @@ export class Spion extends SoloGame {
       for (const p of this.inRound) if (p !== this.spy && this.votes[p] === this.spy) add(p, 100);
     }
     this.result = { caught, why, delta };
-    this.phase = 'result';
-    this.room.fx(caught ? 'win-round' : 'lose');
-    this.room.step(7000, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Runde');
-    this.changed();
   }
 
   finish() {
@@ -179,6 +185,15 @@ export class Spion extends SoloGame {
   }
 
   op(by, a) {
+    if (a.type === 'flipResult') {
+      // Operator: Ausgang der Runde umkehren (z. B. Rateversuch des Spions war doch richtig)
+      if (this.phase !== 'result') throw new Error('Nur beim Rundenergebnis möglich.');
+      const caught = !this.result.caught;
+      this.applyRound(caught, caught ? 'Vom Operator korrigiert: Spion geschnappt' : 'Vom Operator korrigiert: Der Spion gewinnt');
+      this.room.opAnnounce(by, caught ? 'wertet: Der Spion ist geschnappt! 🎉' : 'wertet: Der Spion gewinnt! 🕵️', 'Punkte wurden neu berechnet');
+      this.room.addTime('phase', 3000);
+      return this.changed();
+    }
     if (a.type === 'skip' && this.phase === 'clues') {
       this.room.opAnnounce(by, `überspringt den Hinweis von ${this.name(this.current)}`);
       this.addClue(this.current, '…', true);

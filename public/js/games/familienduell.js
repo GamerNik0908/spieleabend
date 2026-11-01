@@ -42,15 +42,23 @@ function useSpaceBuzz(enabled) {
   }, [enabled]);
 }
 
-function LastAnswer({ g, pm }) {
+function LastAnswer({ st, g, pm }) {
   const l = g.last;
+  const [assign, setAssign] = useState(false);
   if (!l || g.phase === 'intro') return null;
+  const isOp = st.me.isOperator;
   return html`<div class=${`result-line ${l.ok ? 'ok' : 'bad'}`} style="max-width:640px;margin:0 auto;width:100%">
     <${Avatar} p=${pm[l.pid]} size=${24} /><b>${pm[l.pid]?.name}</b><span class="muted">„${l.input || '–'}“</span>
     <div class="spacer"></div>
     ${l.ok ? html`<span class="pill ok">✓ Auf der Tafel</span>` : l.dup ? html`<span class="pill bad">schon aufgedeckt</span>` : html`<span class="pill bad">✗ Nicht auf der Tafel</span>`}
     <${ByTag} by=${l.by} />
-  </div>`;
+    ${isOp && l.ok && html`<button class="btn xs bad" onClick=${() => gameOp({ type: 'reject' })}>✗ doch falsch</button>`}
+    ${isOp && !l.ok && html`<button class="btn xs ok" onClick=${() => setAssign(!assign)}>✓ doch richtig …</button>`}
+  </div>
+  ${isOp && !l.ok && assign && html`<div class="op-fix" style="max-width:640px;margin:0 auto">
+    <span class="tiny muted">Welcher verdeckten Antwort entspricht „${l.input}“? (nur du siehst das)</span>
+    <div class="row wrap" style="justify-content:center">${(g.opBoard || []).map((a, i) => !g.board[i]?.open && html`<button key=${i} class="btn xs ok" onClick=${() => { setAssign(false); gameOp({ type: 'assign', index: i }); }}>${a.t} (${a.p})</button>`)}</div>
+  </div>`}`;
 }
 
 function Action({ st, g, pm }) {
@@ -114,7 +122,11 @@ function Final({ st, g, pm }) {
     let content;
     if (!a) content = html`<span class="faint small">${pm[r.players[t.id]]?.name} überlegt …</span>`;
     else if (a.input === undefined) content = html`<span class="small">${a.mine ? `„${a.mine}“ ✓` : '✓ abgegeben'}</span>`;
-    else content = html`<span class="small muted">„${a.input || '–'}“</span><b>${a.t ? `${a.t} · ${a.p}` : '0'}</b>`;
+    else content = html`<span class="small muted">„${a.input || '–'}“</span><b>${a.t ? `${a.t} · ${a.p}` : '0'}</b>
+      ${st.me.isOperator && r.board && html`<select class="input fd-fix" value=${a.index ?? -1} title="Operator: Wertung ändern"
+        onChange=${(e) => gameOp({ type: 'finalSet', row: ri, teamId: t.id, index: Number(e.target.value) })}>
+        <option value="-1">✏️ 0 Punkte</option>${r.board.map((x, i) => html`<option value=${i}>✏️ ${x.t} (${x.p})</option>`)}
+      </select>`}`;
     return html`<div class=${`fa ${isCur ? 'cur' : ''}`} style=${teamStyle(t.color)}>
       <div class="tiny" style=${`color:${t.color};font-weight:800`}>${pm[r.players[t.id]]?.name}</div>${content}
     </div>`;
@@ -152,7 +164,7 @@ export function FamilienDuellView({ st, g }) {
         ${g.board.length > 0 && html`<${Board} g=${g} />`}
         ${g.control && html`<${Strikes} n=${g.strikes} />`}
         <${Action} st=${st} g=${g} pm=${pm} />
-        <${LastAnswer} g=${g} pm=${pm} />`}
+        <${LastAnswer} st=${st} g=${g} pm=${pm} />`}
     </div>
     <${TeamSide} t=${g.teams[1]} g=${g} pm=${pm} />
   </div>`;

@@ -105,16 +105,8 @@ export class Luegenbaron extends SoloGame {
   reveal() {
     if (this.phase !== 'vote') return;
     this.room.clearTimer('vote');
-    const m = this.mult();
-    const delta = Object.fromEntries(this.active().map((p) => [p, 0]));
-    for (const [voter, id] of Object.entries(this.votes)) {
-      const o = this.options.find((x) => x.id === id);
-      if (!o) continue;
-      if (o.truth) delta[voter] = (delta[voter] || 0) + TRUTH_PTS * m;
-      else for (const a of o.authors) delta[a] = (delta[a] || 0) + FOOL_PTS * m;
-    }
-    for (const [p, d] of Object.entries(delta)) if (p in this.scores) this.scores[p] += d;
-    this.result = { delta };
+    this.result = { delta: {} };
+    this.rescore();
     this.phase = 'reveal';
     // Lügen mit Stimmen zuerst, die Wahrheit zum Schluss
     const voted = (o) => Object.values(this.votes).filter((v) => v === o.id).length;
@@ -125,6 +117,22 @@ export class Luegenbaron extends SoloGame {
     const ms = 2600 * this.revealOrder.length + 5500;
     this.room.step(ms, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Runde');
     this.changed();
+  }
+
+  /** Punkte der Runde (neu) berechnen – auch nach Operator-Korrekturen */
+  rescore() {
+    const m = this.mult();
+    for (const [p, d] of Object.entries(this.result.delta)) if (p in this.scores) this.scores[p] -= d;
+    const delta = Object.fromEntries(this.active().map((p) => [p, 0]));
+    const isTrue = (o) => o.truth || o.alsoTrue;
+    for (const [voter, id] of Object.entries(this.votes)) {
+      const o = this.options.find((x) => x.id === id);
+      if (!o) continue;
+      if (isTrue(o)) delta[voter] = (delta[voter] || 0) + TRUTH_PTS * m;
+      else for (const a of o.authors) delta[a] = (delta[a] || 0) + FOOL_PTS * m;
+    }
+    for (const [p, d] of Object.entries(delta)) if (p in this.scores) this.scores[p] += d;
+    this.result.delta = delta;
   }
 
   finish() {
@@ -144,6 +152,17 @@ export class Luegenbaron extends SoloGame {
   }
 
   op(by, a) {
+    if (a.type === 'markTrue') {
+      // Operator: Eine „Lüge“ ist eigentlich auch wahr (oder doch nicht)
+      if (this.phase !== 'reveal') throw new Error('Nur bei der Auflösung möglich.');
+      const o = this.options.find((x) => x.id === a.id);
+      if (!o || o.truth) throw new Error('Nicht möglich.');
+      o.alsoTrue = !!a.on;
+      this.rescore();
+      this.room.opAnnounce(by, a.on ? `wertet „${o.text}“ ebenfalls als WAHR ✅` : `wertet „${o.text}“ wieder als Lüge 🤥`, 'Punkte wurden neu berechnet');
+      this.room.addTime('phase', 3000);
+      return this.changed();
+    }
     if (a.type === 'skip' && this.phase === 'write') {
       this.room.opAnnounce(by, 'beendet die Schreibzeit ⏭');
       this.closeWrite();
@@ -171,7 +190,7 @@ export class Luegenbaron extends SoloGame {
       options: this.options.map((o) => ({
         id: o.id, text: o.text,
         mine: o.authors.includes(pid),
-        ...(reveal ? { truth: !!o.truth, house: !!o.house, authors: o.authors, voters: Object.keys(this.votes).filter((v) => this.votes[v] === o.id) } : {}),
+        ...(reveal ? { truth: !!o.truth, alsoTrue: !!o.alsoTrue, house: !!o.house, authors: o.authors, voters: Object.keys(this.votes).filter((v) => this.votes[v] === o.id) } : {}),
       })),
       revealOrder: reveal ? this.revealOrder : null,
       myVote: this.votes[pid] ?? null,

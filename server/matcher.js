@@ -184,7 +184,8 @@ function maxTypos(len) {
 }
 
 // Ähnlichkeit zweier bereits normalisierter Strings: 0 = nein, sonst 0..1
-function similarity(inp, tgt) {
+// strict (Zeichenspiel): nur kleine Tippfehler, kein Klang-/Stamm-Raten – es muss genau der Begriff sein
+function similarity(inp, tgt, strict = false) {
   if (!inp || !tgt) return 0;
   if (inp === tgt) return 1;
   const a = inp.replace(/ /g, ''), b = tgt.replace(/ /g, '');
@@ -196,8 +197,9 @@ function similarity(inp, tgt) {
   // Kurze Wörter: Tippfehler nur, wenn der Anfangsbuchstabe stimmt (sonst Grau ≈ Blau, Möwe ≈ Löwe)
   const short = b.length <= 6;
   const d = editDistance(a, b);
-  const allowed = maxTypos(b.length);
+  const allowed = strict ? (b.length <= 4 ? 0 : b.length <= 9 ? 1 : 2) : maxTypos(b.length);
   if (d <= allowed && (!short || a[0] === b[0])) return 0.95 - d / Math.max(b.length, 1) * 0.5;
+  if (strict) return 0;
   // Stammform mit Tippfehlern nur bei längeren Wörtern (sonst Koch ≈ Knochen)
   if (fb.length > 6 && editDistance(fa, fb) <= maxTypos(fb.length)) return 0.85;
   // Gleicher Klang nur bei langen Wörtern und nahe beieinander (sonst Hund ≈ Handy, Kater ≈ Gitarre)
@@ -215,11 +217,11 @@ function variants(raw) {
   return [...set].filter(Boolean);
 }
 
-function textScore(input, target) {
+function textScore(input, target, strict = false) {
   let best = 0;
   for (const a of variants(input)) {
     for (const b of variants(target)) {
-      const s = similarity(a, b);
+      const s = similarity(a, b, strict);
       if (s > best) best = s;
       if (best === 1) return 1;
     }
@@ -263,7 +265,7 @@ export function scoreAnswer(input, spec) {
   let best = 0;
   for (const t of [spec.a, ...(spec.alt || [])]) {
     if (t == null) continue;
-    const s = textScore(input, String(t));
+    const s = textScore(input, String(t), !!spec.strict);
     if (s > best) best = s;
     if (best === 1) break;
   }

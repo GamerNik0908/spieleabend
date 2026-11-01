@@ -53,6 +53,18 @@ export class Schaetzen extends SoloGame {
   reveal() {
     if (this.phase !== 'guess') return;
     this.room.clearTimer('answer');
+    this.result = null;
+    const list = this.score();
+    this.phase = 'reveal';
+    this.room.fx(list.some((e) => e.bullseye) ? 'win' : 'reveal');
+    // Lösung zuerst, dann Schätzungen vom schlechtesten zum besten (1,4 s je Spieler)
+    this.room.step(1800 + 1400 * list.length + 3000, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Frage');
+    this.changed();
+  }
+
+  /** Rangliste und Punkte berechnen (alte Punkte der Runde vorher zurücknehmen) */
+  score() {
+    if (this.result) for (const e of this.result.list) this.scores[e.pid] -= e.pts;
     const a = this.q.a;
     const m = this.mult();
     const list = Object.entries(this.guesses).map(([pid, v]) => ({ pid, value: v, diff: Math.abs(v - a) }));
@@ -70,11 +82,7 @@ export class Schaetzen extends SoloGame {
       this.scores[e.pid] += e.pts;
     });
     this.result = { a, unit: this.q.unit, info: this.q.info, list };
-    this.phase = 'reveal';
-    this.room.fx(list.some((e) => e.bullseye) ? 'win' : 'reveal');
-    // Lösung zuerst, dann Schätzungen vom schlechtesten zum besten (1,4 s je Spieler)
-    this.room.step(1800 + 1400 * list.length + 3000, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Frage');
-    this.changed();
+    return list;
   }
 
   finish() {
@@ -93,6 +101,18 @@ export class Schaetzen extends SoloGame {
   }
 
   op(by, a) {
+    if (a.type === 'setGuess') {
+      // Operator: Schätzung korrigieren (z. B. Tippfehler 1000 statt 100)
+      if (this.phase !== 'reveal' || !(a.pid in this.guesses)) throw new Error('Nur bei der Auflösung möglich.');
+      const v = Number(a.value);
+      if (!Number.isFinite(v)) throw new Error('Ungültige Zahl');
+      const before = this.guesses[a.pid];
+      this.guesses[a.pid] = v;
+      this.score();
+      this.room.opAnnounce(by, `ändert die Schätzung von ${this.name(a.pid)}: ${before} → ${v}`, 'Rangliste neu berechnet');
+      this.room.addTime('phase', 3000);
+      return this.changed();
+    }
     if (a.type === 'skip' && this.phase === 'guess') {
       this.room.opAnnounce(by, 'löst die Frage auf ⏭');
       this.reveal();

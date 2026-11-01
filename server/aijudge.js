@@ -44,6 +44,23 @@ ${RULES_INJECTION}
 
 Antworte nur im vorgegebenen JSON-Format.`;
 
+const DRAW_SYSTEM = `Du bist Schiedsrichter beim Zeichen-Raten (Montagsmaler) auf einem deutschen Spieleabend.
+Du bekommst den gesuchten Begriff (mit erlaubten Varianten) und den Rateversuch eines Spielers.
+Der Spieler muss GENAU den gesuchten Begriff erraten.
+
+Akzeptiere nur:
+- denselben Begriff mit Tipp- oder Rechtschreibfehlern, Singular/Plural, mit/ohne Artikel
+- andere Schreibweise oder eine gängige Bezeichnung für exakt dasselbe Ding (z. B. "Sofa" = "Couch", "Fernseher" = "TV")
+
+Lehne ab:
+- abgewandelte oder verwandte Begriffe, Teile davon und zusammengesetzte Wörter
+  (z. B. "Schneeball" für "Schneemann", "Baum" für "Tannenbaum", "Feuerwehr" für "Feuerwehrauto", "Feuerwehrmann" für "Feuerwehr")
+- Oberbegriffe, Unterbegriffe und Dinge aus derselben Kategorie ("Tier" für "Hund", "Dackel" für "Hund", "Katze" für "Hund")
+- Beschreibungen statt des Begriffs ("Ding zum Sitzen" für "Stuhl") und mehrere Tipps auf einmal
+Im Zweifel: ablehnen. ${RULES_INJECTION}
+
+Antworte nur im vorgegebenen JSON-Format.`;
+
 const GROUP_SYSTEM = `Du bist Schiedsrichter beim Spiel „Gleichdenker“ auf einem deutschen Spieleabend.
 Ein Team hat geheim auf dieselbe Frage geantwortet. Punkte gibt es für Antworten, die DASSELBE meinen.
 Fasse Antworten zu Gruppen zusammen, wenn sie dasselbe bedeuten:
@@ -103,12 +120,12 @@ export async function aiJudge({ question, solutions, input, mode = 'quiz' }) {
   if (cache.has(key)) return cache.get(key);
   if (!allowCall()) return null;
   const list = solutions.map((s, i) => `${i}: ${s}`).join('\n');
-  const content = `Art: ${mode === 'survey' ? 'Umfrage-Antworten (Familien-Duell)' : mode === 'draw' ? 'Zeichen-Raten (gesuchter Begriff – nur genau dieser Begriff oder echte Synonyme zählen, KEINE Oberbegriffe oder nur verwandte Dinge)' : 'Quizfrage'}
+  const content = `Art: ${mode === 'survey' ? 'Umfrage-Antworten (Familien-Duell)' : mode === 'draw' ? 'Zeichen-Raten (nur genau der gesuchte Begriff zählt)' : 'Quizfrage'}
 Frage: ${question}
 Gültige Lösungen:
 ${list}
 Antwort des Spielers: """${String(input).slice(0, 200)}"""`;
-  const parsed = await ask(JUDGE_SYSTEM, content, Verdict, VerdictGemini);
+  const parsed = await ask(mode === 'draw' ? DRAW_SYSTEM : JUDGE_SYSTEM, content, Verdict, VerdictGemini);
   if (!parsed) return null;
   const match = Number(parsed.match);
   return remember(key, {

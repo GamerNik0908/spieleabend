@@ -1,5 +1,5 @@
 // Ansicht „Lügenbaron“: Lüge schreiben, Wahrheit suchen, dramatische Auflösung.
-import { html, act, useTick, remaining, Avatar, TimerBar, AnswerInput, ScoreStrip, GameHead, DoneRow, playerMap } from '../lib.js';
+import { html, act, gameOp, revealPrefs, useLocalStagger, useTick, remaining, Avatar, TimerBar, AnswerInput, ScoreStrip, GameHead, DoneRow, playerMap } from '../lib.js';
 
 const STEP = 2600;
 
@@ -11,7 +11,7 @@ function Fact({ q, fill, truth }) {
 function Reveal({ st, g, pm }) {
   useTick(true, 200);
   const t = g.timers.phase;
-  const elapsed = t ? t.duration - remaining(t) : 1e9;
+  const elapsed = t && revealPrefs.sequential ? t.duration - remaining(t) : 1e9;
   const n = g.revealOrder.length;
   const step = Math.floor(elapsed / STEP);
   const done = step >= n;
@@ -33,13 +33,20 @@ function Reveal({ st, g, pm }) {
       <div class="col" style="gap:8px;margin-top:14px">
         ${Object.entries(g.delta).sort((a, b) => b[1] - a[1]).map(([pid, d]) => pm[pid] && html`<div class="result-line ok" key=${pid}><${Avatar} p=${pm[pid]} size=${28} /><b>${pm[pid].name}</b><div class="spacer"></div><span class=${`pill ${d > 0 ? 'ok' : ''}`}>+${d}</span></div>`)}
       </div>
+      ${st.me.isOperator && html`<div class="op-fix">
+        <div class="section-title">Operator: War eine „Lüge“ eigentlich auch wahr?</div>
+        <div class="row wrap" style="gap:6px">${g.options.filter((o) => !o.truth).map((o) => html`<button key=${o.id} class=${`btn xs ${o.alsoTrue ? 'primary' : ''}`}
+          onClick=${() => gameOp({ type: 'markTrue', id: o.id, on: !o.alsoTrue })}>${o.alsoTrue ? '✅' : '🤥'} ${o.text}</button>`)}</div>
+      </div>`}
     </div>`}
-    <div class="row wrap" style="justify-content:center;gap:8px">${shown.map((id) => { const o = g.options.find((x) => x.id === id); return html`<span key=${id} class=${`pill ${o.truth ? 'ok' : 'bad'}`}>${o.truth ? '✅' : '🤥'} ${o.text}</span>`; })}</div>
+    <div class="row wrap" style="justify-content:center;gap:8px">${shown.map((id) => { const o = g.options.find((x) => x.id === id); const ok = o.truth || o.alsoTrue; return html`<span key=${id} class=${`pill ${ok ? 'ok' : 'bad'}`}>${ok ? '✅' : '🤥'} ${o.text}</span>`; })}</div>
   </div>`;
 }
 
 export function LuegenbaronView({ st, g }) {
   const pm = playerMap(st);
+  const intro = useLocalStagger(`lbv-${g.round}-${g.phase}`, g.options?.length || 0, 900, 300);
+  const nOpts = revealPrefs.sequential ? intro : g.options?.length || 0;
   const timer = g.phase === 'write' ? g.timers.answer : g.phase === 'vote' ? g.timers.vote : null;
   return html`<div class="stage">
     <${GameHead} icon="🤥" title="Lügenbaron" sub=${g.round ? `Runde ${g.round}/${g.rounds}${g.mult > 1 ? ' · ×2' : ''}` : null} timer=${timer} warn=${8} />
@@ -55,7 +62,7 @@ export function LuegenbaronView({ st, g }) {
     ${g.phase === 'vote' && html`<div class="card rise">
       <${Fact} q=${g.q} />
       <div class="banner" style="margin:14px 0">${g.myVote != null ? 'Abgestimmt – warte auf die anderen …' : 'Welche Antwort ist die WAHRHEIT?'}</div>
-      <div class="lb-options">${g.options.map((o, i) => html`<button key=${o.id}
+      <div class="lb-options">${g.options.slice(0, nOpts).map((o, i) => html`<button key=${o.id}
         class=${`lb-option c${i % 6} ${g.myVote === o.id ? 'picked' : ''}`} disabled=${o.mine || g.myVote != null}
         onClick=${() => act({ type: 'vote', id: o.id })}>${o.text}${o.mine && html`<span class="tiny">deine Lüge</span>`}</button>`)}</div>
     </div>

@@ -157,7 +157,7 @@ function Chat({ st, g }) {
       ${!g.chat.length && html`<div class="muted small">Noch keine Tipps …</div>`}
       ${g.chat.map((c) => c.kind === 'hit'
         ? html`<div key=${c.id} class="mm-msg hit">✅ <b>${pm[c.pid]?.name}</b> hat's erraten! <span class="pill ok">+${c.pts}</span>${c.by === 'ki' && html` <${ByTag} by="ki" />`}</div>`
-        : html`<div key=${c.id} class="mm-msg"><b>${pm[c.pid]?.name}:</b> ${c.text}</div>`)}
+        : html`<div key=${c.id} class="mm-msg"><b>${pm[c.pid]?.name}:</b> ${c.text}${st.me.isOperator && c.kind === 'guess' && g.phase === 'draw' && html` <button class="btn xs ok" title="Operator: Tipp gelten lassen" onClick=${() => gameOp({ type: 'accept', id: c.id })}>✓ zählt</button>`}</div>`)}
     </div>
     ${g.canGuess ? html`<${AnswerInput} key=${`g-${g.turnId}`} live=${false} placeholder="Was ist das?" button="Raten" onSubmit=${(text) => text && act({ type: 'answer', text })} />`
       : g.phase === 'draw' && !g.isDrawer ? html`<div class="banner" style="color:var(--ok)">✅ Erraten! Schau zu, wie die anderen rätseln.</div>` : null}
