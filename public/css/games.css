@@ -317,3 +317,19 @@ body[data-game="gleichdenker"] { --accent: #3ad08a; }
 .em-card { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .em-emojis { font-size: clamp(48px, 9vw, 92px); letter-spacing: .08em; line-height: 1.15; }
 .em-hint { margin: 0; }
+
+/* ---------- Zuschauer-Ansicht (Stream) ---------- */
+.tv .answer-form, .tv .op-fix, .tv .vh-form, .tv .au-chat, .tv .zs-gap.can { display: none !important; }
+.tv .main { max-width: 1400px; }
+.tv-bar .tv-join { font-size: 15px; color: var(--muted); }
+.tv-bar .tv-join b { color: var(--gold-2); }
+.tv-bar .tv-game { display: inline-flex; align-items: center; gap: 8px; font-weight: 700; }
+.tv-lobby { display: flex; flex-direction: column; gap: 18px; }
+.tv-hero { padding: 26px; }
+.tv-code { font-size: clamp(64px, 12vw, 140px); letter-spacing: .14em; color: var(--gold-2); line-height: 1; margin: 6px 0; }
+.tv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.tv-players { display: flex; flex-wrap: wrap; gap: 14px; }
+.tv-player { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 92px; text-align: center; }
+.tv-player.off { opacity: .4; }
+.tv-start { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; background: rgba(8,6,16,.88); cursor: pointer; padding: 16px; }
+.tv-start .card { max-width: 560px; }

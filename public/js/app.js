@@ -8,6 +8,7 @@ import { Results } from './results.js';
 import { OpBar } from './opbar.js';
 import { TutorialOverlay } from './tutorials.js';
 import { EditPanel } from './editor.js';
+import { TV, TvBar, TvLobby, TvStart, TvButton } from './tv.js';
 import { QuizDuellView } from './games/quizduell.js';
 import { FamilienDuellView } from './games/familienduell.js';
 import { DuemmsteView } from './games/duemmste.js';
@@ -28,6 +29,13 @@ import { EmojiView } from './games/emoji.js';
 socket.on('connect', async () => {
   connStore.set(true);
   syncClock();
+  // Zuschauer-Ansicht: nur zuschauen, nie als Spieler einloggen (auch wenn im selben Browser gespielt wird)
+  if (TV) {
+    const code = (new URLSearchParams(location.search).get('raum') || '').toUpperCase();
+    const r = await emit('watch', { code });
+    if (r.error) { stateStore.set(null); toast(r.error, 'error'); }
+    return;
+  }
   const s = session.get();
   if (s?.token) {
     const r = await emit('resume', s);
@@ -244,11 +252,36 @@ function Room({ st }) {
   </div>`;
 }
 
+/** Zuschauer-Ansicht für den Stream: groß, ohne Eingaben, ohne Geheimnisse */
+function TvRoom({ st }) {
+  const G = st.game && GAME_VIEWS[st.game.type];
+  return html`<div class="app tv">
+    <${TvBar} st=${st} />
+    <main class="main">
+      ${st.screen === 'lobby' && html`<${TvLobby} st=${st} />`}
+      ${st.screen === 'results' && html`<${Results} st=${st} />`}
+      ${st.screen === 'game' && G && html`<${G} st=${st} g=${st.game} />`}
+    </main>
+    ${st.waiting && st.screen === 'game' && html`<div class="wait-op">⏳ ${st.players.find((p) => p.isOperator)?.name || 'Der Operator'} schaltet gleich weiter …</div>`}
+    <${PauseScreen} st=${st} />
+    <${TutorialOverlay} st=${st} />
+  </div>`;
+}
+
 function App() {
   const st = useStore(stateStore);
   useEffect(() => {
-    if (st?.code) history.replaceState(null, '', `/?raum=${st.code}`);
+    if (st?.code) history.replaceState(null, '', `/?raum=${st.code}${TV ? '&tv=1' : ''}`);
   }, [st?.code]);
+  useEffect(() => { document.body.classList.toggle('tv-mode', TV); }, []);
+  if (TV) {
+    return html`<div>
+      ${st ? html`<${TvRoom} st=${st} />` : html`<div class="app"><main class="main"><div class="card center" style="margin-top:20vh"><div class="fun" style="font-size:32px">📺 Zuschauer-Ansicht</div><p class="muted">Verbinde mit dem Raum … Falls nichts passiert: Raumcode im Link prüfen.</p></div></main></div>`}
+      <${TvStart} />
+      <${Stamp} />
+      <${Announcements} />
+    </div>`;
+  }
   // Jedes Spiel hat seine eigene Bühnenfarbe
   const theme = st?.screen === 'game' ? st.game?.type : '';
   useEffect(() => { document.body.dataset.game = theme || ''; }, [theme]);

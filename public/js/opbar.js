@@ -1,5 +1,6 @@
 // Operator-Leiste während des Spiels + Korrektur-Schublade.
 import { html, useState, useEffect, op, gameOp } from './lib.js';
+import { TvButton } from './tv.js';
 import { QuizDuellOps } from './games/quizduell.js';
 import { FamilienDuellOps } from './games/familienduell.js';
 import { DuemmsteOps } from './games/duemmste.js';
@@ -90,6 +91,7 @@ export function OpBar({ st }) {
       <button class="btn sm" title="10 Sekunden mehr" onClick=${() => gameOp({ type: 'addTime' })}>⏱ +10s</button>
       <button class="btn sm" onClick=${() => setDrawer(true)}>✏️ Korrigieren</button>
       <button class="btn sm" onClick=${say}>📣</button>
+      <${TvButton} st=${st} cls="btn sm" />
       <button class="btn sm bad" onClick=${() => setEndMenu(!endMenu)}>🏁 Ende</button>
     </div>
     ${endMenu && html`<div class="opbar" style="bottom:78px">

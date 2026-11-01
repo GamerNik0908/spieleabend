@@ -1,6 +1,7 @@
 // Lobby: Spieler, Spielauswahl, Einstellungen, Teams – plus Operator-Bereiche
 // für Bilder, All-Time-Score und Daten.
 import { html, useState, useEffect, useRef, op, session, toast, Avatar, teamStyle, playerMap, GameIcon } from './lib.js';
+import { TvButton } from './tv.js';
 
 export const GAME_INFO = {
   quizduell: {
@@ -309,6 +310,7 @@ function GameSetup({ st }) {
     ${isOp
       ? html`<div class="row wrap" style="gap:12px">
           <button class="btn cyan lg" style="flex:1;min-width:220px" onClick=${() => op('tutorial', { game: st.gameType, step: 0 })}>📖 Tutorial für alle zeigen</button>
+          <${TvButton} st=${st} cls="btn lg" />
           <button class="btn primary lg go" style="flex:2;min-width:260px;font-size:26px;padding:18px" onClick=${() => op('start')}>▶ ${info.title} starten!</button>
         </div>`
       : html`<div class="card center"><div class="fun" style="font-size:24px">🍿 Gleich geht's los …</div><div class="muted">${opName} startet das Spiel</div></div>`}

@@ -41,6 +41,8 @@ export const GAMES = {
 };
 
 const token = () => crypto.randomBytes(16).toString('hex');
+// Kennung der Zuschauer-Ansicht (TV/Stream): sieht alles Öffentliche, aber keine Geheimnisse
+export const TV_ID = '__tv__';
 
 export class Room {
   constructor(code, io) {
@@ -105,7 +107,18 @@ export class Room {
     this.changed();
   }
 
+  /** Zuschauer-Ansicht (z. B. für Discord-Stream) – kein Spieler, nur Zuschauen */
+  watch(socket) {
+    (this.watchers ||= new Set()).add(socket.id);
+    socket.data.room = this.code;
+    socket.data.playerId = null;
+    socket.data.watcher = true;
+    socket.join(this.code);
+    this.changed();
+  }
+
   detach(socket) {
+    this.watchers?.delete(socket.id);
     const p = this.players.get(socket.data.playerId);
     if (!p) return;
     p.sockets.delete(socket.id);
@@ -453,6 +466,15 @@ export class Room {
         try { s.emit('state', this.view(p.id)); } catch (err) { console.error('[Ansicht]', this.gameType, err); }
       }
     }
+    if (this.watchers?.size) {
+      let tv = null;
+      try { tv = this.view(TV_ID); } catch (err) { console.error('[TV-Ansicht]', this.gameType, err); }
+      for (const sid of this.watchers) {
+        const s = this.io.sockets.sockets.get(sid);
+        if (!s) this.watchers.delete(sid);
+        else if (tv) s.emit('state', tv);
+      }
+    }
   }
 
   playerInfo(pid) {
@@ -471,7 +493,7 @@ export class Room {
     const v = {
       now: Date.now(),
       code: this.code,
-      me: { id: pid, name: me?.name, isOperator: isOp },
+      me: { id: pid, name: pid === TV_ID ? 'Zuschauer' : me?.name, isOperator: isOp, tv: pid === TV_ID },
       operatorId: this.operatorId,
       players: [...this.players.keys()].map((id) => this.playerInfo(id)),
       paused: this.paused,

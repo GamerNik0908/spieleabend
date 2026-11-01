@@ -216,8 +216,9 @@ export class Spion extends SoloGame {
       round: this.round,
       rounds: this.opts.rounds,
       cat: this.cat,
-      role: !this.spy ? null : !inRound ? { spectator: true, word: this.word } : isSpy ? { spy: true } : { word: this.word },
-      word: reveal || this.phase === 'spyGuess' && !isSpy ? this.word : undefined,
+      // Die Stream-Ansicht (TV) darf das Wort nie sehen – sonst liest der Spion mit
+      role: !this.spy || pid === '__tv__' ? null : !inRound ? { spectator: true, word: this.word } : isSpy ? { spy: true } : { word: this.word },
+      word: reveal || (this.phase === 'spyGuess' && !isSpy && pid !== '__tv__') ? this.word : undefined,
       catWords: isSpy || reveal ? this.catWords : undefined,
       order: this.order,
       clues: this.clues || [],

@@ -139,6 +139,15 @@ io.on('connection', (socket) => {
     return { code: r.code, token: p.token };
   }, cb));
 
+  // Zuschauer-Ansicht für den Stream: nur zuschauen, nichts verraten
+  socket.on('watch', (data, cb) => safe(socket, () => {
+    const r = rooms.get(String(data?.code || '').trim().toUpperCase());
+    if (!r) throw new Error('Raum nicht gefunden.');
+    leaveCurrent();
+    r.watch(socket);
+    return { code: r.code };
+  }, cb));
+
   socket.on('leave', (_, cb) => safe(socket, () => {
     const r = room();
     if (!r) return {};
@@ -152,6 +161,7 @@ io.on('connection', (socket) => {
   socket.on('act', (a, cb) => safe(socket, () => {
     const r = room();
     if (!r?.game) throw new Error('Kein Spiel aktiv.');
+    if (!pid() || socket.data.watcher) throw new Error('Die Zuschauer-Ansicht kann nicht mitspielen.');
     if (r.paused) throw new Error('Das Spiel ist pausiert.');
     const res = r.game.act(pid(), a || {});
     r.changed();
