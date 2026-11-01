@@ -80,6 +80,7 @@ const fast = {
   gleichdenker: { rounds: 4, answerSeconds: 10 },
 }[game] || {};
 for (const [key, value] of Object.entries(fast)) await opx('setOption', { key, value });
+if (process.env.AUTO) await opx('setRoom', { manualAdvance: false });
 await sleep(200);
 log('Teams:', JSON.stringify(host.st.teams?.map((t) => t.members.length)));
 const r = await opx('start');
@@ -96,6 +97,7 @@ function feudGuess(q, skill) {
 }
 
 let pausedOnce = false;
+let advances = 0;
 let overrideOnce = false;
 const t0 = Date.now();
 while (Date.now() - t0 < 6 * 60e3) {
@@ -107,6 +109,8 @@ while (Date.now() - t0 < 6 * 60e3) {
     log('All-Time:', st.leaderboard.map((x) => `${x.name}:${x.points}`).join(', '));
     break;
   }
+  // Klick-Modus: Operator drückt „Weiter“, sobald das Spiel wartet
+  if (st.waiting && !st.paused) { advances++; await opx('advance'); }
   // Pause einmal testen
   if (!pausedOnce && Date.now() - t0 > 8000) {
     pausedOnce = true;
@@ -211,7 +215,7 @@ while (Date.now() - t0 < 6 * 60e3) {
   }
 }
 if (host.st.screen !== 'results') log('⚠️ Kein Ergebnis nach Zeitlimit. Phase:', host.st.game?.phase);
-log('Einblendungen gesamt:', announcements.length);
+log('Einblendungen gesamt:', announcements.length, '· Weiter-Klicks:', advances);
 for (const b of bots) b.s.close();
 server.kill();
 fs.rmSync(DATA, { recursive: true, force: true });

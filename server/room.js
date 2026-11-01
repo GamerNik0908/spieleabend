@@ -55,6 +55,9 @@ export class Room {
     this.timers = new Map();
     this.results = null;
     this.tutorial = null; // { game, step } – vom Operator gesteuerte Erklär-Folien
+    this.aiOn = true; // KI-Richter für diesen Raum (falls ein Key gesetzt ist)
+    this.manualAdvance = true; // Operator klickt „Weiter“ statt automatischem Weiterspringen
+    this.waiting = null; // { label, cb } – wartet auf den Operator
     this.typing = null;
     this.flushQueued = false;
     this.lastActivity = Date.now();
@@ -168,6 +171,7 @@ export class Room {
   // ---------- Timer (respektieren Pause) ----------
   setTimer(key, ms, cb) {
     const now = Date.now();
+    if (key === 'phase') { this.waitLabel = null; this.waiting = null; }
     this.timers.set(key, { deadline: now + ms, duration: ms, remaining: ms, cb });
     this.changed();
   }
@@ -178,6 +182,48 @@ export class Room {
 
   clearAllTimers() {
     this.timers.clear();
+    this.waiting = null;
+  }
+
+  /**
+   * Größerer Spielschritt (nächste Runde, nächste Frage …): Die Auflösung läuft `ms` lang.
+   * Danach geht es automatisch weiter – oder, im Modus „Operator klickt weiter“, erst auf Klick.
+   */
+  step(ms, cb, label = 'Weiter') {
+    this.waiting = null;
+    this.setTimer('phase', ms, () => {
+      if (this.manualAdvance && this.game) {
+        this.waiting = { label, cb };
+        const op = this.players.get(this.operatorId);
+        if (op) this.emitTo(op.id, 'fx', { kind: 'announce' });
+        this.changed();
+      } else cb();
+    });
+    this.waitLabel = label;
+  }
+
+  /** Operator: zum nächsten Schritt (wartet gerade etwas, oder läuft die Auflösung noch) */
+  advance() {
+    if (this.waiting) {
+      const w = this.waiting;
+      this.waiting = null;
+      w.cb();
+      this.changed();
+      return true;
+    }
+    const t = this.timers.get('phase');
+    if (t) {
+      this.timers.delete('phase');
+      this.waiting = null;
+      // Auflösung überspringen → direkt weiter (auch im Klick-Modus, der Operator hat ja geklickt)
+      const manual = this.manualAdvance;
+      this.manualAdvance = false;
+      try { t.cb(); } finally { this.manualAdvance = manual; }
+      this.waiting = null;
+      this.changed();
+      return true;
+    }
+    return false;
   }
 
   timerView(key) {
@@ -368,6 +414,10 @@ export class Room {
       teamStyles: TEAM_STYLES,
       results: this.results,
       tutorial: this.tutorial,
+      waiting: this.waiting ? { label: this.waiting.label } : null,
+      nextLabel: this.timers.has('phase') ? this.waitLabel || null : null,
+      manualAdvance: this.manualAdvance,
+      aiOn: this.aiOn,
       game: this.game ? this.game.view(pid, isOp) : null,
       leaderboard: store.leaderboard(),
       ai: aiEnabled(),

@@ -1,5 +1,5 @@
 // Ansicht „Gleichdenker“: geheim antworten, dann teamweise Auflösung mit gleichen Antworten.
-import { html, useState, act, gameOp, Avatar, TimerBar, AnswerInput, GameHead, DoneRow, teamStyle, playerMap, useStagger } from '../lib.js';
+import { html, useState, act, gameOp, ByTag, Judging, Avatar, TimerBar, AnswerInput, GameHead, DoneRow, teamStyle, playerMap, useStagger } from '../lib.js';
 
 function TeamScores({ g, pm, hold = {} }) {
   return html`<div class="scorebar">${g.teams.map((t) => html`<div key=${t.id} class="team-score" style=${teamStyle(t.color)}>
@@ -18,11 +18,13 @@ function TeamResult({ st, g, t, pm }) {
     <div class="gd-team-head"><span class="gd-team-name">${t.name}</span><span class="gd-pts">+${r.pts}</span></div>
     <div class="gd-label">${label}</div>
     <div class="gd-groups">${r.groups.map((grp, gi) => html`<div key=${gi} class=${`gd-group ${grp.pids.length > 1 ? 'match' : ''}`}>
+      ${grp.pids.length > 1 && grp.ki && html`<div class="gd-ki"><${ByTag} by="ki" /> als gleich erkannt</div>`}
       ${grp.pids.map((pid, i) => html`<button key=${pid} class=${`gd-answer ${sel.includes(pid) ? 'sel' : ''}`} disabled=${!isOp} onClick=${() => toggle(pid)}>
         <${Avatar} p=${pm[pid]} size=${30} /><span class="gd-name">${pm[pid]?.name}</span><b>${grp.texts[i] || '—'}</b>
       </button>`)}
     </div>`)}</div>
     ${isOp && sel.length >= 2 && html`<button class="btn sm primary" onClick=${() => { gameOp({ type: 'merge', teamId: t.id, pids: sel }); setSel([]); }}>Als gleich werten (${sel.length})</button>`}
+    ${isOp && sel.length === 1 && r.groups.some((grp) => grp.pids.length > 1 && grp.pids.includes(sel[0])) && html`<button class="btn sm bad" onClick=${() => { gameOp({ type: 'split', teamId: t.id, pid: sel[0] }); setSel([]); }}>✂️ Abtrennen (zählt nicht als gleich)</button>`}
   </div>`;
 }
 
@@ -44,8 +46,9 @@ export function GleichdenkerView({ st, g }) {
       <${AnswerInput} key=${`gd-${g.round}`} live=${false} placeholder="Was schreiben die anderen wohl?" button=${g.myAnswer ? 'Ändern' : 'Abgeben'} onSubmit=${(text) => act({ type: 'answer', text })} />
     </div>
     <${DoneRow} st=${st} ids=${g.teams.flatMap((t) => t.members)} done=${g.answered} />`}
+    ${g.phase === 'judging' && html`<div class="card center"><${Judging} /><div class="small muted" style="margin-top:8px">Die KI vergleicht eure Antworten nach Bedeutung …</div></div>`}
     ${g.phase === 'reveal' && g.result && html`<div class="gd-results">${order.slice(0, shown).map((t) => html`<${TeamResult} key=${t.id} st=${st} g=${g} t=${t} pm=${pm} />`)}</div>
       ${shown < order.length && html`<div class="banner">Wer hat am meisten gleich gedacht? …</div>`}
-      ${st.me.isOperator && html`<p class="tiny muted center">Operator: Antworten anklicken und „Als gleich werten“, z. B. bei Sofa = Couch.</p>`}`}
+      ${st.me.isOperator && html`<p class="tiny muted center">Operator: Antworten anklicken – mehrere „Als gleich werten“ (z. B. Sofa = Couch) oder eine einzelne „Abtrennen“.</p>`}`}
   </div>`;
 }

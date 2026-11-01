@@ -44,7 +44,7 @@ export class FamilienDuell extends Game {
 
   start() {
     this.phase = 'intro';
-    this.room.setTimer('phase', 6000, () => this.nextRound());
+    this.room.step(6000, () => this.nextRound(), 'Runde 1 starten');
   }
 
   // ---------- Hauptrunden ----------
@@ -110,7 +110,7 @@ export class FamilienDuell extends Game {
     this.changed();
     let res = { index: -1, by: 'auto' };
     try {
-      res = await judgeAmong(this.q.q, this.q.a, this.pendingInput);
+      res = await judgeAmong(this.q.q, this.q.a, this.pendingInput, { ai: this.room.aiOn });
     } finally {
       this.judging = false;
     }
@@ -234,7 +234,7 @@ export class FamilienDuell extends Game {
     this.active = null;
     this.room.announce(`${winner.name} holt ${points} Punkte`, 'points', why);
     this.room.fx('win-round');
-    this.room.setTimer('phase', 8000, () => this.nextRound());
+    this.room.step(6000, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Finale' : 'Nächste Runde');
     this.changed();
   }
 
@@ -257,7 +257,7 @@ export class FamilienDuell extends Game {
       index: -1,
     };
     this.room.announce('🔥 Finalrunde!', 'final', 'Pro Frage antwortet aus jedem Team eine Person – geheim. Punkte = Prozent.');
-    this.room.setTimer('phase', 6000, () => this.finalNext());
+    this.room.step(6000, () => this.finalNext(), 'Erste Finalfrage');
     this.changed();
   }
 
@@ -298,7 +298,7 @@ export class FamilienDuell extends Game {
     }
     await Promise.all(this.teams.map(async (t) => {
       const ans = row.answers[t.id];
-      const res = await judgeAmong(row.q.q, row.q.a, ans.input);
+      const res = await judgeAmong(row.q.q, row.q.a, ans.input, { ai: this.room.aiOn });
       ans.index = res.index;
       ans.by = res.by;
       ans.p = res.index >= 0 ? row.q.a[res.index].p : 0;
@@ -308,7 +308,7 @@ export class FamilienDuell extends Game {
     for (const t of this.teams) t.score += row.answers[t.id].p;
     this.phase = 'finalReveal';
     this.room.fx('reveal');
-    this.room.setTimer('phase', 7000, () => this.finalNext());
+    this.room.step(6000, () => this.finalNext(), this.final.index + 1 >= this.opts.finalQuestions ? 'Zum Ergebnis' : 'Nächste Finalfrage');
     this.changed();
   }
 

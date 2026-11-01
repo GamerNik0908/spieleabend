@@ -1,6 +1,6 @@
 // Ansicht „Montagsmaler“: Live-Zeichenfläche, Begriffswahl, Rate-Chat.
 import {
-  html, useEffect, useRef, useState, act, gameOp, socket, Avatar, TimerBar, AnswerInput, ScoreStrip, GameHead, playerMap,
+  html, useEffect, useRef, useState, act, gameOp, socket, ByTag, Avatar, TimerBar, AnswerInput, ScoreStrip, GameHead, playerMap,
 } from '../lib.js';
 
 const COLORS = ['#1d0b45', '#ff3d7f', '#ff8a3d', '#ffd23f', '#2fe08b', '#2ee6d6', '#3d8bff', '#8b5cff', '#8a5a2b', '#ffffff'];
@@ -156,7 +156,7 @@ function Chat({ st, g }) {
     <div class="mm-msgs" ref=${ref}>
       ${!g.chat.length && html`<div class="muted small">Noch keine Tipps …</div>`}
       ${g.chat.map((c) => c.kind === 'hit'
-        ? html`<div key=${c.id} class="mm-msg hit">✅ <b>${pm[c.pid]?.name}</b> hat's erraten! <span class="pill ok">+${c.pts}</span></div>`
+        ? html`<div key=${c.id} class="mm-msg hit">✅ <b>${pm[c.pid]?.name}</b> hat's erraten! <span class="pill ok">+${c.pts}</span>${c.by === 'ki' && html` <${ByTag} by="ki" />`}</div>`
         : html`<div key=${c.id} class="mm-msg"><b>${pm[c.pid]?.name}:</b> ${c.text}</div>`)}
     </div>
     ${g.canGuess ? html`<${AnswerInput} key=${`g-${g.turnId}`} live=${false} placeholder="Was ist das?" button="Raten" onSubmit=${(text) => text && act({ type: 'answer', text })} />`

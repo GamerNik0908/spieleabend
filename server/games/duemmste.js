@@ -47,7 +47,7 @@ export class Duemmste extends Game {
 
   start() {
     this.phase = 'intro';
-    this.room.setTimer('phase', 7000, () => this.startRound());
+    this.room.step(7000, () => this.startRound(), 'Runde starten');
   }
 
   onPlayerJoined(pid) {
@@ -116,7 +116,7 @@ export class Duemmste extends Game {
     cur.judging = true;
     this.room.clearTimer('answer');
     this.changed();
-    const res = await judgeSingle(cur.q.q, cur.q, cur.input);
+    const res = await judgeSingle(cur.q.q, cur.q, cur.input, { ai: this.room.aiOn });
     if (this.current !== cur) return;
     this.resolve(cur, res.ok, res.by, res.reason);
   }
@@ -194,10 +194,10 @@ export class Duemmste extends Game {
     if (top.length === 1) {
       this.room.setTimer('phase', readMs, () => {
         this.loseLife(top[0], `${max} ${max === 1 ? 'Stimme' : 'Stimmen'}`);
-        this.room.setTimer('phase', 5000, () => this.startRound());
+        this.room.step(4000, () => this.startRound(), 'Nächste Runde');
       });
     } else {
-      this.room.setTimer('phase', readMs + 1500, () => this.startDuel(top, 'tie'));
+      this.room.step(readMs + 1500, () => this.startDuel(top, 'tie'), 'Stechen starten');
     }
     this.changed();
   }
@@ -227,7 +227,7 @@ export class Duemmste extends Game {
     } else {
       this.room.announce('⚔️ Gleichstand – Stechen!', 'duel', `${pids.map((p) => this.name(p)).join(', ')}: abwechselnd Fragen, bis einer patzt`);
     }
-    this.room.setTimer('phase', 5000, () => this.duelNext());
+    this.room.step(4500, () => this.duelNext(), 'Los geht’s');
     this.changed();
   }
 
@@ -245,13 +245,13 @@ export class Duemmste extends Game {
     const loser = d.remaining[0];
     this.phase = 'duelResult';
     this.loseLife(loser, d.mode === 'final' ? 'Finale' : 'Stechen verloren');
-    this.room.setTimer('phase', 5000, () => {
+    this.room.step(5000, () => {
       const alive = this.alive();
       if (alive.length <= 1) return this.finish();
       if (d.mode === 'final') return this.startDuel(alive, 'final');
       this.duel = null;
       this.startRound();
-    });
+    }, 'Weiter');
   }
 
   // ---------- Ende ----------

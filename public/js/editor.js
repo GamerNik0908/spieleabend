@@ -1,7 +1,7 @@
 // Bearbeiten-Bereich für den Operator während der Pause: Punkte, Timer, Einstellungen,
 // Spieldetails (Leben, Strikes, Zug, Teams) und Korrekturen – alles an einem Ort.
 import { html, useState, op, gameOp, remaining, Avatar, playerMap } from './lib.js';
-import { OPTION_DEFS } from './lobby.js';
+import { OPTION_DEFS, RoomSwitches } from './lobby.js';
 import { QuizDuellOps } from './games/quizduell.js';
 import { FamilienDuellOps } from './games/familienduell.js';
 import { DuemmsteOps } from './games/duemmste.js';
@@ -113,6 +113,7 @@ export function EditPanel({ st }) {
       <${Scores} st=${st} g=${g} pm=${pm} />
       <${Timers} g=${g} />
       ${Specific({ st, g, pm })}
+      <${Section} title="🎛️ Ablauf & KI"><${RoomSwitches} st=${st} /></${Section}>
       <${Settings} st=${st} g=${g} />
       ${Ops && html`<div class="ed-ops"><${Ops} st=${st} g=${g} /></div>`}
     </div>

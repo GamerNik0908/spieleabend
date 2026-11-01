@@ -1,7 +1,8 @@
 // Gemeinsame Bausteine für alle Spiele: Bewertung (lokal + optional KI),
 // Team-Rotation, Fragen ziehen ohne Wiederholung.
 import { scoreAnswer, matchAmong } from '../matcher.js';
-import { aiJudge } from '../aijudge.js';
+import { aiJudge, aiGroup } from '../aijudge.js';
+export { aiGroup };
 import * as store from '../store.js';
 
 export function shuffle(arr) {
@@ -22,24 +23,26 @@ export function drawFresh(game, pool, n, used) {
 }
 
 /** Eine richtige Lösung (mit Varianten). Rückgabe { ok, by: 'auto'|'ki', reason } */
-export async function judgeSingle(question, spec, input) {
+export async function judgeSingle(question, spec, input, { ai = true, mode = 'quiz' } = {}) {
   const text = String(input || '').trim();
   if (!text) return { ok: false, by: 'auto', reason: 'keine Antwort' };
   if (scoreAnswer(text, spec) > 0) return { ok: true, by: 'auto' };
   // Reine Zahlenfragen entscheidet die Zahl – keine KI nötig
   if (typeof spec.num === 'number' && !spec.kw) return { ok: false, by: 'auto' };
+  if (!ai) return { ok: false, by: 'auto' };
   const solution = [spec.a, ...(spec.alt || [])].join(' / ');
-  const r = await aiJudge({ question, solutions: [solution], input: text, mode: 'quiz' });
+  const r = await aiJudge({ question, solutions: [solution], input: text, mode });
   if (r && r.match === 0) return { ok: true, by: 'ki', reason: r.reason };
   return { ok: false, by: r ? 'ki' : 'auto', reason: r?.reason };
 }
 
 /** Mehrere mögliche Antworten (Familien-Duell). Rückgabe { index, by, reason } */
-export async function judgeAmong(question, options, input) {
+export async function judgeAmong(question, options, input, { ai = true } = {}) {
   const text = String(input || '').trim();
   if (!text) return { index: -1, by: 'auto' };
   const local = matchAmong(text, options);
   if (local >= 0) return { index: local, by: 'auto' };
+  if (!ai) return { index: -1, by: 'auto' };
   const r = await aiJudge({
     question,
     solutions: options.map((o) => [o.t, ...(o.alt || [])].join(' / ')),

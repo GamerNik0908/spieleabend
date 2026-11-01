@@ -1,7 +1,7 @@
 // „Montagsmaler“: Einer zeichnet, alle anderen raten per Tippen. Wer schneller rät,
 // bekommt mehr Punkte; der Zeichner bekommt Punkte für jeden, der es errät.
 // Mit der Zeit werden Buchstaben als Tipp aufgedeckt.
-import { SoloGame, drawFresh, shuffle } from './base.js';
+import { SoloGame, drawFresh, shuffle, judgeSingle } from './base.js';
 import { matchAnswer, normalize, editDistance } from '../matcher.js';
 import * as store from '../store.js';
 import { MONTAGSMALER } from '../data/index.js';
@@ -37,7 +37,7 @@ export class Montagsmaler extends SoloGame {
   }
 
   start() {
-    this.room.setTimer('phase', 5000, () => this.nextTurn());
+    this.room.step(5000, () => this.nextTurn(), 'Erstes Bild');
   }
 
   pickWords() {
@@ -104,14 +104,24 @@ export class Montagsmaler extends SoloGame {
     return [...this.word.w].map((ch, i) => (/[\p{L}\p{N}]/u.test(ch) && !this.revealed.has(i) ? '_' : ch)).join('');
   }
 
-  guess(pid, text) {
+  async guess(pid, text) {
     if (this.phase !== 'draw') return;
     if (pid === this.drawer) throw new Error('Du zeichnest – nicht verraten! 😄');
     if (this.guessed[pid]) return;
     text = String(text || '').trim().slice(0, 60);
     if (!text) return;
     const spec = { a: this.word.w, alt: this.word.alt };
-    if (matchAnswer(text, spec)) {
+    let hit = matchAnswer(text, spec);
+    let by = 'auto';
+    // Nicht direkt erkannt? KI prüft auf echte Synonyme (z. B. Couch = Sofa)
+    if (!hit && this.room.aiOn && normalize(text).length >= 3) {
+      const turn = this.turnId;
+      const r = await judgeSingle('Welcher Begriff wird gerade gezeichnet?', spec, text, { mode: 'draw' });
+      if (turn !== this.turnId || this.phase !== 'draw' || this.guessed[pid]) return;
+      hit = r.ok;
+      by = r.ok ? r.by : 'auto';
+    }
+    if (hit) {
       const t = this.room.timerView('draw');
       const frac = t ? t.remaining / t.duration : 0;
       const first = Object.keys(this.guessed).length === 0;
@@ -121,7 +131,7 @@ export class Montagsmaler extends SoloGame {
       this.turnPoints[pid] = pts;
       this.scores[this.drawer] += 50;
       this.turnPoints[this.drawer] = (this.turnPoints[this.drawer] || 0) + 50;
-      this.chat.push({ id: ++this.chatSeq, pid, kind: 'hit', pts });
+      this.chat.push({ id: ++this.chatSeq, pid, kind: 'hit', pts, by });
       this.room.emitTo(pid, 'fx', { kind: 'correct' });
       this.room.fx('reveal');
       const guessers = this.online().filter((p) => p !== this.drawer);
@@ -172,7 +182,7 @@ export class Montagsmaler extends SoloGame {
     this.phase = 'reveal';
     this.reason = reason;
     this.room.fx(Object.keys(this.guessed).length ? 'win-round' : 'wrong');
-    this.room.setTimer('phase', 6000, () => this.nextTurn());
+    this.room.step(5000, () => this.nextTurn(), this.turnIdx + 1 >= this.queue.length ? 'Zum Ergebnis' : 'Nächstes Bild');
     this.changed();
   }
 

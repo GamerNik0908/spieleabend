@@ -147,6 +147,16 @@ export function Leaderboard({ st, limit = 10, editable = false }) {
   </div>`;
 }
 
+// ---------- Raum-Schalter (Operator) ----------
+export function RoomSwitches({ st }) {
+  return html`<div class="col" style="gap:8px">
+    <label class="switch-row"><span><b>Operator klickt weiter</b><div class="tiny muted">Nach Auflösungen geht es erst weiter, wenn du klickst (Enter). Aus = automatisch.</div></span>
+      <input type="checkbox" checked=${st.manualAdvance} onChange=${(e) => op('setRoom', { manualAdvance: e.target.checked })} /></label>
+    <label class="switch-row"><span><b>KI-Richter${st.aiName ? ` (${st.aiName})` : ''}</b><div class="tiny muted">${st.ai ? 'Prüft Synonyme & Umschreibungen in allen Spielen (Gleichdenker, Montagsmaler, Quiz …). Korrigieren kannst du immer.' : 'Kein API-Key gesetzt – siehe Anleitung.'}</div></span>
+      <input type="checkbox" checked=${st.ai && st.aiOn} disabled=${!st.ai} onChange=${(e) => op('setRoom', { aiOn: e.target.checked })} /></label>
+  </div>`;
+}
+
 // ---------- Spiel-Setup ----------
 function Stepper({ value, step, onChange, disabled }) {
   return html`<span class="stepper">
@@ -223,6 +233,7 @@ function GameSetup({ st }) {
         ${!isOp && html`<span class="pill">Einstellungen macht ${opName}</span>`}</div>
       <ul class="rules">${info.rules.map((r, i) => html`<li data-n=${i + 1}>${r}</li>`)}</ul>
       <${Options} st=${st} />
+      ${isOp && html`<div style="margin-top:14px"><${RoomSwitches} st=${st} /></div>`}
     </div>
     <${Teams} st=${st} />
     ${warn && html`<div class="pill bad" style="align-self:flex-start">${warn}</div>`}

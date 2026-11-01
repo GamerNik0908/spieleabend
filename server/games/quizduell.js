@@ -84,7 +84,7 @@ export class QuizDuell extends Game {
       this.turnIdx = lowest - 1;
     }
     if (this.round > 1) this.room.announce(`Runde ${this.round}`, 'round', 'Alle Felder zählen jetzt doppelt!');
-    this.room.setTimer('phase', 7000, () => this.nextTurn());
+    this.room.step(7000, () => this.nextTurn(), 'Los geht’s');
     this.changed();
   }
 
@@ -145,7 +145,7 @@ export class QuizDuell extends Game {
     cur.input = text;
     this.room.clearTimer('answer');
     this.changed();
-    const res = await judgeSingle(cur.q.q, cur.q, text);
+    const res = await judgeSingle(cur.q.q, cur.q, text, { ai: this.room.aiOn });
     cur.judging = false;
     if (seq !== this.seq || this.cur !== cur) return;
     this.applyResult(pid, text, res.ok, res.by, res.reason);
@@ -209,7 +209,7 @@ export class QuizDuell extends Game {
     cur.winner = winnerTeamId;
     this.phase = 'reveal';
     this.seq++;
-    this.room.setTimer('phase', winnerTeamId ? 4500 : 6000, () => this.nextTurn());
+    this.room.step(winnerTeamId ? 4500 : 6000, () => this.nextTurn(), this.boardDone() ? (this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Runde') : 'Nächstes Feld');
     this.changed();
   }
 

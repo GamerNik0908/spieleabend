@@ -1,5 +1,5 @@
 // Operator-Leiste während des Spiels + Korrektur-Schublade.
-import { html, useState, op, gameOp } from './lib.js';
+import { html, useState, useEffect, op, gameOp } from './lib.js';
 import { QuizDuellOps } from './games/quizduell.js';
 import { FamilienDuellOps } from './games/familienduell.js';
 import { DuemmsteOps } from './games/duemmste.js';
@@ -56,6 +56,18 @@ function AvatarQuick({ st }) {
 
 export function OpBar({ st }) {
   const [drawer, setDrawer] = useState(false);
+  // Enter = weiter (wenn das Spiel auf den Operator wartet und kein Eingabefeld aktiv ist)
+  useEffect(() => {
+    if (!st.waiting) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Enter' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) {
+        e.preventDefault();
+        op('advance');
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [!!st.waiting]);
   const [endMenu, setEndMenu] = useState(false);
   const g = st.game;
   const Ops = GAME_OPS[g.type];
@@ -64,12 +76,17 @@ export function OpBar({ st }) {
     if (t && t.trim()) op('announce', { text: t.trim() });
   };
   return html`
+    ${st.waiting && !st.paused && html`<div class="next-prompt" onClick=${() => op('advance')}>
+      <span class="np-dot"></span><span>Bereit – weiter, wenn ihr so weit seid</span><b>▶ ${st.waiting.label}</b><span class="kbd">Enter</span>
+    </div>`}
     <div class="opbar">
       <span class="label">👑 Operator</span>
       ${st.paused
         ? html`<button class="btn sm primary" onClick=${() => op('resume')}>▶ Weiter</button>`
         : html`<button class="btn sm" onClick=${() => op('pause')}>⏸ Pause</button>`}
-      <button class="btn sm" title="Überspringen / nächster Schritt" onClick=${() => gameOp({ type: 'skip' })}>⏭ Weiter</button>
+      ${st.waiting
+        ? html`<button class="btn sm primary next-ready" onClick=${() => op('advance')}>▶ ${st.waiting.label}</button>`
+        : html`<button class="btn sm" title="Überspringen / nächster Schritt" onClick=${() => gameOp({ type: 'skip' })}>⏭ ${st.nextLabel ? st.nextLabel : 'Weiter'}</button>`}
       <button class="btn sm" title="10 Sekunden mehr" onClick=${() => gameOp({ type: 'addTime' })}>⏱ +10s</button>
       <button class="btn sm" onClick=${() => setDrawer(true)}>✏️ Korrigieren</button>
       <button class="btn sm" onClick=${say}>📣</button>

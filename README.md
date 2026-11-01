@@ -20,9 +20,10 @@ Eine Website für euren Online-Spieleabend mit neun Spielen:
 
 - **Operator**: Wer den Raum erstellt, ist Operator und spielt trotzdem mit. Er wählt das Spiel, stellt es ein, startet, pausiert, überspringt, gibt Zeit dazu, korrigiert Bewertungen und Punkte, beendet Spiele und kann die Rolle weitergeben. **Jede Operator-Aktion wird bei allen groß eingeblendet.**
 - **Tutorial pro Spiel**: In der Lobby „📖 Tutorial für alle zeigen“ – alle sehen dieselben Erklär-Folien, nur der Operator blättert (auch mit ← →).
+- **Operator klickt weiter**: Nach jeder Auflösung wartet das Spiel, bis der Operator „Weiter“ klickt (oder Enter drückt) – entspannteres Spielen. Abschaltbar (dann geht es automatisch weiter).
 - **Bearbeiten in der Pause**: Drückt der Operator Pause, kann er Punkte direkt setzen, laufende Uhren stellen, Einstellungen fürs restliche Spiel ändern, Leben/Strikes/Zug anpassen, Spieler zwischen Teams verschieben und Bewertungen korrigieren.
 - **Antwort-Erkennung**: Groß/klein egal, Tippfehler werden toleriert („Lufthanse“ → Lufthansa), Umlaute/ß, Füllwörter („ich glaube es ist …“), Zahlwörter („acht“ = 8, „zweitausendsechs“ = 2006), Plural, gleich klingende Schreibweisen (Filipinen/Philippinen). Absicherungs-Antworten wie „11 oder 12“ zählen nicht.
-- **KI-Richter (optional)**: Für Umschreibungen und Synonyme („schnelles Gehen“ ≈ „rennen“) prüft Claude alle Antworten, die die normale Erkennung nicht versteht. Siehe unten.
+- **KI-Richter (optional)**: Für Umschreibungen und Synonyme in allen Spielen (Quiz, Familien-Duell, Dümmste, Gleichdenker, Montagsmaler, Spion, Lügenbaron) („schnelles Gehen“ ≈ „rennen“) prüft Claude alle Antworten, die die normale Erkennung nicht versteht. Siehe unten.
 - **Teams automatisch** für jede Spielerzahl (z. B. 4 → 2×2, 6 → 2×3, 7 → 3/2/2, 9 → 3×3); neu mischen, „fair mischen“ nach All-Time-Punkten, Spieler per Klick verschieben.
 - **All-Time-Score** pro Person: Sieg +10, Platz 2 +5, Platz 3 +2, Teilnahme +1 (Team-Siege zählen für jedes Teammitglied).
 - **Bilder**: Operator lädt eure KI-Bilder hoch und weist sie den Spielern zu. Ohne Bild werden Initialen gezeigt. Bilder bleiben am Namen gespeichert.

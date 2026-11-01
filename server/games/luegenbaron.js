@@ -1,7 +1,7 @@
 // „Lügenbaron“ (wie Fibbage): Eine wahre, kuriose Tatsache mit Lücke. Jeder erfindet
 // eine Lüge, dann sucht jeder die Wahrheit. Punkte: Wahrheit gefunden, und für jeden,
 // der auf die eigene Lüge hereinfällt.
-import { SoloGame, drawFresh, shuffle } from './base.js';
+import { SoloGame, drawFresh, shuffle, judgeSingle } from './base.js';
 import { matchAnswer, normalize } from '../matcher.js';
 import * as store from '../store.js';
 import { LUEGENBARON } from '../data/index.js';
@@ -31,7 +31,7 @@ export class Luegenbaron extends SoloGame {
   }
 
   start() {
-    this.room.setTimer('phase', 6000, () => this.nextRound());
+    this.room.step(6000, () => this.nextRound(), 'Erste Runde');
   }
 
   nextRound() {
@@ -48,11 +48,20 @@ export class Luegenbaron extends SoloGame {
     this.changed();
   }
 
-  submitLie(pid, text) {
+  async submitLie(pid, text) {
     if (this.phase !== 'write') throw new Error('Gerade wird nicht geschrieben.');
     text = String(text || '').trim().replace(/\s+/g, ' ').slice(0, 60);
     if (!text) throw new Error('Schreib eine Lüge 😉');
-    if (matchAnswer(text, { a: this.q.a, alt: this.q.alt })) {
+    const truth = { a: this.q.a, alt: this.q.alt };
+    let isTruth = matchAnswer(text, truth);
+    // KI erkennt auch umschriebene Wahrheit (sonst wäre die „Lüge“ ein Geschenk)
+    if (!isTruth && this.room.aiOn) {
+      const round = this.round;
+      const r = await judgeSingle(this.q.q.replace('___', '…'), truth, text);
+      if (round !== this.round || this.phase !== 'write') return;
+      isTruth = r.ok;
+    }
+    if (isTruth) {
       throw new Error('Psst – das ist (fast) die Wahrheit! Denk dir eine Lüge aus. 😏');
     }
     this.lies[pid] = text;
@@ -114,7 +123,7 @@ export class Luegenbaron extends SoloGame {
       ...this.options.filter((o) => o.truth),
     ].map((o) => o.id);
     const ms = 2600 * this.revealOrder.length + 5500;
-    this.room.setTimer('phase', ms, () => this.nextRound());
+    this.room.step(ms, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Runde');
     this.changed();
   }
 

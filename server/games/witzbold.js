@@ -43,7 +43,7 @@ export class Witzbold extends SoloGame {
       this.room.announce('Witzbold braucht mindestens 3 Spieler', 'op');
       return this.room.setTimer('phase', 2000, () => this.finish());
     }
-    this.room.setTimer('phase', 6000, () => this.nextRound());
+    this.room.step(6000, () => this.nextRound(), 'Los geht’s');
   }
 
   nextRound() {
@@ -155,7 +155,7 @@ export class Witzbold extends SoloGame {
     this.phase = 'matchReveal';
     if (p.bonus != null) this.room.fx('win');
     else this.room.fx('reveal');
-    this.room.setTimer('phase', p.bonus != null ? 6500 : 5500, () => this.nextMatch());
+    this.room.step(p.bonus != null ? 6000 : 5000, () => this.nextMatch(), this.matchIdx + 1 >= this.prompts.length ? 'Weiter' : 'Nächstes Duell');
     this.changed();
   }
 
@@ -194,7 +194,7 @@ export class Witzbold extends SoloGame {
     this.phase = 'finalReveal';
     this.room.fx('win');
     // Antworten von wenigen zu vielen Stimmen aufdecken
-    this.room.setTimer('phase', 1000 + 2200 * f.order.length + 5000, () => this.finish());
+    this.room.step(1000 + 2200 * f.order.length + 3000, () => this.finish(), 'Zum Ergebnis');
     this.changed();
   }
 

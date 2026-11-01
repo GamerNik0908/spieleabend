@@ -202,3 +202,16 @@ body[data-game="gleichdenker"] { --accent: #3ad08a; }
 /* Eigenes Logo statt Würfel-Kachel */
 .logo .dice:has(img) { background: none; box-shadow: none; width: 42px; height: 42px; }
 .logo .dice img { filter: drop-shadow(0 4px 10px rgba(245,196,81,.35)); }
+
+/* Operator klickt weiter */
+.next-ready { animation: readyPulse 1.6s ease-in-out infinite; }
+.next-prompt { position: fixed; left: 0; right: 0; margin: 0 auto; width: fit-content; max-width: calc(100vw - 20px); bottom: 86px; z-index: 41; display: flex; align-items: center; gap: 12px; padding: 10px 16px; border-radius: 14px; cursor: pointer; background: rgba(20,22,56,.95); border: 1px solid rgba(245,196,81,.55); box-shadow: 0 16px 40px rgba(0,0,0,.5), 0 0 40px rgba(245,196,81,.18); white-space: nowrap; animation: fadeUp .35s var(--ease) both; }
+.next-prompt b { color: var(--gold-2); font-family: var(--font-fun); }
+.next-prompt .np-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 0 rgba(245,196,81,.7); animation: dotPing 1.4s ease-out infinite; }
+.wait-op { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 41; padding: 8px 16px; border-radius: 99px; background: rgba(20,22,56,.9); border: 1px solid var(--line-2); color: var(--muted); font-size: 14px; backdrop-filter: blur(10px); }
+@keyframes readyPulse { 0%, 100% { box-shadow: 0 10px 28px rgba(245,196,81,.25), inset 0 1px 0 rgba(255,255,255,.5); } 50% { box-shadow: 0 0 0 6px rgba(245,196,81,.18), 0 10px 40px rgba(245,196,81,.45), inset 0 1px 0 rgba(255,255,255,.5); } }
+@keyframes dotPing { 0% { box-shadow: 0 0 0 0 rgba(245,196,81,.7); } 100% { box-shadow: 0 0 0 12px rgba(245,196,81,0); } }
+@media (max-width: 720px) { .next-prompt span:not(.np-dot):not(.kbd) { display: none; } .next-prompt .kbd { display: none; } }
+.switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 12px; background: rgba(0,0,0,.18); border: 1px solid var(--line); }
+.switch-row input { width: 20px; height: 20px; accent-color: var(--gold); }
+.gd-ki { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; padding: 0 4px; }

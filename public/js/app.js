@@ -228,6 +228,7 @@ function Room({ st }) {
       ${st.screen === 'game' && G && html`<${G} st=${st} g=${st.game} />`}
     </main>
     ${showOpBar && html`<${OpBar} st=${st} />`}
+    ${!st.me.isOperator && st.waiting && st.screen === 'game' && html`<div class="wait-op">⏳ ${st.players.find((p) => p.isOperator)?.name || 'Der Operator'} schaltet gleich weiter …</div>`}
     <${PauseScreen} st=${st} />
     <${TutorialOverlay} st=${st} />
   </div>`;

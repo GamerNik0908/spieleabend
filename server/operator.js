@@ -187,7 +187,27 @@ export function handleOp(room, by, a) {
     }
     case 'game': {
       if (!room.game) throw new Error('Kein Spiel aktiv.');
+      // „Weiter“ während einer Auflösung / Wartepause: direkt zum nächsten Schritt
+      if (a.action?.type === 'skip' && (room.waiting || room.timers.has('phase')) && !['answer', 'vote', 'buzz', 'pick', 'draw', 'choose'].some((k) => room.timers.has(k))) {
+        room.advance();
+        break;
+      }
       room.game.op(by, a.action || {});
+      break;
+    }
+    case 'advance':
+      if (!room.advance()) throw new Error('Gerade gibt es nichts zum Weiterschalten.');
+      break;
+    case 'setRoom': {
+      if ('manualAdvance' in a) {
+        room.manualAdvance = !!a.manualAdvance;
+        room.opAnnounce(by, room.manualAdvance ? 'schaltet auf „Operator klickt weiter“ 👆' : 'schaltet auf automatisches Weiterspielen ⏩');
+        if (!room.manualAdvance && room.waiting) room.advance();
+      }
+      if ('aiOn' in a) {
+        room.aiOn = !!a.aiOn;
+        room.opAnnounce(by, room.aiOn ? 'schaltet den KI-Richter an 🤖' : 'schaltet den KI-Richter aus');
+      }
       break;
     }
     default:

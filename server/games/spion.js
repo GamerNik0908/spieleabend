@@ -1,7 +1,7 @@
 // „Der Spion“: Alle kennen das geheime Wort – nur der Spion kennt bloß die Kategorie.
 // Reihum gibt jeder ein Hinweiswort, dann wird abgestimmt. Wird der Spion enttarnt,
 // darf er noch das Wort raten und so doch gewinnen.
-import { SoloGame, shuffle } from './base.js';
+import { SoloGame, shuffle, judgeSingle } from './base.js';
 import { matchAnswer, normalize } from '../matcher.js';
 import { SPION } from '../data/index.js';
 
@@ -20,7 +20,7 @@ export class Spion extends SoloGame {
   }
 
   start() {
-    this.room.setTimer('phase', 6000, () => this.nextRound());
+    this.room.step(6000, () => this.nextRound(), 'Erste Runde');
   }
 
   nextRound() {
@@ -49,7 +49,7 @@ export class Spion extends SoloGame {
     this.result = null;
     this.guess = null;
     this.phase = 'roles';
-    this.room.setTimer('phase', 7000, () => this.nextClue());
+    this.room.step(7000, () => this.nextClue(), 'Hinweise starten');
     this.changed();
   }
 
@@ -122,11 +122,21 @@ export class Spion extends SoloGame {
     this.changed();
   }
 
-  spyGuess(pid, text, timeout = false) {
+  async spyGuess(pid, text, timeout = false) {
     if (this.phase !== 'spyGuess' || pid !== this.spy) throw new Error('Nur der Spion darf jetzt raten.');
+    if (this.guessing) return;
     this.room.clearTimer('answer');
     this.guess = String(text || '').trim().slice(0, 40);
-    const ok = !timeout && this.guess && matchAnswer(this.guess, { a: this.word });
+    let ok = !timeout && this.guess && matchAnswer(this.guess, { a: this.word });
+    // KI prüft Synonyme/Umschreibungen des geheimen Wortes
+    if (!ok && !timeout && this.guess && this.room.aiOn) {
+      this.guessing = true;
+      this.changed();
+      const r = await judgeSingle(`Geheimes Wort aus der Kategorie „${this.cat}“`, { a: this.word }, this.guess, { mode: 'draw' });
+      this.guessing = false;
+      if (this.phase !== 'spyGuess') return;
+      ok = r.ok;
+    }
     if (ok) this.finishRound(false, `Der Spion hat das Wort erraten: „${this.word}“!`);
     else this.finishRound(true, 'Der Spion wurde geschnappt!');
   }
@@ -146,7 +156,7 @@ export class Spion extends SoloGame {
     this.result = { caught, why, delta };
     this.phase = 'result';
     this.room.fx(caught ? 'win-round' : 'lose');
-    this.room.setTimer('phase', 9000, () => this.nextRound());
+    this.room.step(7000, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Runde');
     this.changed();
   }
 
