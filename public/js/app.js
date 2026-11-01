@@ -89,7 +89,7 @@ function Home() {
 
   return html`<div class="home">
     <div class="hero rise">
-      <span class="hero-logo-wrap"><${AssetImg} src="/assets/logo.png" fallback=${null} alt="Spieleabend" /></span>
+      <span class="hero-logo-wrap"><${AssetImg} src="/assets/logo.webp" fallback=${null} alt="Spieleabend" /></span>
       <h1><span class="w1">Spiele</span><span class="w2">abend</span></h1>
       <p>Neun Gameshows für euren Abend – ein Raum, alle von überall.</p>
     </div>
@@ -201,7 +201,7 @@ function TopBar({ st }) {
     history.replaceState(null, '', '/');
   };
   return html`<div class="topbar">
-    <div class="logo"><span class="dice"><${AssetImg} src="/assets/logo.png" fallback="🎲" /></span><span class="txt">Spieleabend</span></div>
+    <div class="logo"><span class="dice"><${AssetImg} src="/assets/logo.webp" fallback="🎲" /></span><span class="txt">Spieleabend</span></div>
     <span class="code-chip" title="Einladungslink kopieren" onClick=${copy}>${st.code}</span>
     <span class=${`dot ${connected ? '' : 'off'}`} title=${connected ? 'Verbunden' : 'Getrennt – verbinde neu …'}></span>
     ${st.ai && html`<span class="pill op small" title="Antworten, die die normale Erkennung nicht versteht, prüft eine KI">🤖 KI-Richter${st.aiName ? ` (${st.aiName})` : ''}</span>`}

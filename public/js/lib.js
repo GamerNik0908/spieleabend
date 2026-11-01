@@ -342,7 +342,7 @@ export const GAME_EMOJI = {
 const EMOJI_GAME = Object.fromEntries(Object.entries(GAME_EMOJI).map(([k, v]) => [v, k]));
 const missing = new Set();
 
-/** Bild aus /assets, fällt still auf Emoji zurück, wenn es (noch) nicht existiert */
+/** Bild aus /assets (WebP), fällt still auf Emoji zurück, wenn es (noch) nicht existiert */
 export function AssetImg({ src, fallback, alt = '' }) {
   const [bad, setBad] = useState(missing.has(src));
   if (bad) return fallback;
@@ -352,8 +352,8 @@ export function AssetImg({ src, fallback, alt = '' }) {
 export function GameIcon({ id, emoji, size = 44 }) {
   const game = id || EMOJI_GAME[emoji];
   const e = emoji || GAME_EMOJI[game] || '🎲';
-  const [bad, setBad] = useState(!game || missing.has(`/assets/games/${game}.png`));
-  const src = `/assets/games/${game}.png`;
+  const [bad, setBad] = useState(!game || missing.has(`/assets/games/${game}.webp`));
+  const src = `/assets/games/${game}.webp`;
   return html`<span class=${`gicon ${bad ? '' : 'img'}`} data-g=${game} style=${`--s:${size}px`}>
     ${bad ? e : html`<img src=${src} alt="" onError=${() => { missing.add(src); setBad(true); }} />`}
   </span>`;

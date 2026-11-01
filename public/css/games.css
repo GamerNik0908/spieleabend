@@ -198,3 +198,7 @@ body[data-game="gleichdenker"] { --accent: #3ad08a; }
 .podium .shown .block { animation: reveal .6s var(--ease) both; }
 .podium .place { animation: none; }
 .res-row { animation: fadeUp .45s var(--ease) both; }
+
+/* Eigenes Logo statt Würfel-Kachel */
+.logo .dice:has(img) { background: none; box-shadow: none; width: 42px; height: 42px; }
+.logo .dice img { filter: drop-shadow(0 4px 10px rgba(245,196,81,.35)); }

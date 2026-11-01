@@ -85,7 +85,7 @@ export function TutorialOverlay({ st }) {
   return html`<div class="tut-back">
     <div class="tut-card" key=${`${t.game}-${step}`}>
       <div class="tut-head"><span class="pill accent">So geht's</span><span class="tiny muted">${step + 1} / ${slides.length}</span></div>
-      <div class="tut-icon">${step === 0 ? html`<${AssetImg} src=${`/assets/games/${t.game}.png`} fallback=${s.icon} />` : s.icon}</div>
+      <div class="tut-icon">${step === 0 ? html`<${AssetImg} src=${`/assets/games/${t.game}.webp`} fallback=${s.icon} />` : s.icon}</div>
       <h2 class="tut-title">${s.title}</h2>
       <p class="tut-text">${s.text}</p>
       <div class="tut-dots">${slides.map((_, i) => html`<i key=${i} class=${i === step ? 'on' : ''}></i>`)}</div>

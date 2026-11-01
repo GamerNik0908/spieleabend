@@ -1,6 +1,6 @@
 # Grafiken für den Spieleabend
 
-Die Seite nutzt diese Bilder automatisch, sobald sie im Ordner `public/assets/` liegen. Bis dahin werden Emojis angezeigt, es geht also nichts kaputt.
+Die Seite nutzt diese Bilder automatisch, sobald sie im Ordner `public/assets/` liegen (als `.webp`, z. B. `public/assets/games/quizduell.webp`; neue Bilder einfach Claude geben – zuschneiden, freistellen und umwandeln geht automatisch). Bis dahin werden Emojis angezeigt, es geht also nichts kaputt.
 
 ## Einheitlicher Stil (für alle Bilder in den Prompt übernehmen)
 
