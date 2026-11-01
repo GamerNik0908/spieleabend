@@ -38,6 +38,14 @@ export const WITZBOLD = await load('./witzbold.js');
 export const SCHAETZEN = await load('./schaetzen.js');
 export const GLEICHDENKER = await load('./gleichdenker.js');
 
+// Neue Spiele (noch nicht getestet)
+export const WERWARS = await load('./werwars.js');
+export const MINDERHEIT = (await load('./minderheit.js')).filter((q) => q.options?.length >= 2);
+export const VERHOER = await load('./verhoer.js');
+export const EMOJI = await load('./emoji.js');
+const zs = await load('./zeitstrahl.js');
+export const ZEITSTRAHL = { jahr: zs.jahr || [], preis: zs.preis || [] };
+
 export const catalogStats = () => ({
   montagsmaler: MONTAGSMALER.length,
   luegenbaron: LUEGENBARON.length,
@@ -49,4 +57,10 @@ export const catalogStats = () => ({
   quizduell: QUIZ_CATEGORIES.reduce((n, c) => n + c.questions.length, 0),
   quizKategorien: QUIZ_CATEGORIES.length,
   familienduell: FAMILIENDUELL.length,
+  werwars: WERWARS.length,
+  minderheit: MINDERHEIT.length,
+  verhoer: VERHOER.length,
+  auktion: QUIZ_CATEGORIES.reduce((n, c) => n + c.questions.length, 0),
+  zeitstrahl: ZEITSTRAHL.jahr.length + ZEITSTRAHL.preis.length,
+  emoji: EMOJI.length,
 });

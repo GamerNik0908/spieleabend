@@ -5,11 +5,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { io } from 'socket.io-client';
-import { DUEMMSTE, QUIZ_CATEGORIES, FAMILIENDUELL, SCHAETZEN } from '../server/data/index.js';
+import { DUEMMSTE, QUIZ_CATEGORIES, FAMILIENDUELL, SCHAETZEN, EMOJI } from '../server/data/index.js';
+const emojiAnswers = new Map(EMOJI.map((r) => [r.e, r.a]));
 const schaetz = new Map(SCHAETZEN.map((q) => [q.q, q.a]));
 let currentWord = null;
 
-const game = process.argv[2] || 'duemmste';
+// „verhoer:teams“ = Verhör im Team-Modus
+const [game, variant] = (process.argv[2] || 'duemmste').split(':');
 const n = Number(process.argv[3] || 4);
 const PORT = 3900 + Math.floor(Math.random() * 90);
 const DATA = fs.mkdtempSync(path.join(os.tmpdir(), 'spieleabend-'));
@@ -20,10 +22,11 @@ for (const q of DUEMMSTE) answers.set(q.q, q.a);
 for (const c of QUIZ_CATEGORIES) for (const q of c.questions) answers.set(q.q, q.a);
 const feud = new Map(FAMILIENDUELL.map((q) => [q.q, q.a]));
 
-const server = spawn(process.execPath, ['server/index.js'], { env: { ...process.env, PORT, DATA_DIR: DATA, ANTHROPIC_API_KEY: '' }, stdio: ['ignore', 'pipe', 'pipe'] });
+const server = spawn(process.execPath, ['server/index.js'], { env: { ...process.env, PORT, DATA_DIR: DATA, ANTHROPIC_API_KEY: '', GEMINI_API_KEY: '', GOOGLE_API_KEY: '' }, stdio: ['ignore', 'pipe', 'pipe'] });
 server.stderr.on('data', (d) => process.stderr.write(`[server] ${d}`));
 await new Promise((res) => server.stdout.on('data', (d) => d.toString().includes('läuft') && res()));
 
+const pick2 = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const log = (...a) => console.log(new Date().toISOString().slice(14, 19), ...a);
 const announcements = [];
@@ -78,6 +81,12 @@ const fast = {
   witzbold: { rounds: 1, answerSeconds: 30, voteSeconds: 10 },
   schaetzen: { rounds: 4, answerSeconds: 10 },
   gleichdenker: { rounds: 4, answerSeconds: 10 },
+  werwars: { rounds: 3, answerSeconds: 20, guessSeconds: 20 },
+  minderheit: { rounds: 4, voteSeconds: 8 },
+  verhoer: { rounds: 2, maxQuestions: 6, roundSeconds: 90, turnSeconds: 15, teamMode: variant === 'teams' },
+  auktion: { rounds: 4, bidSeconds: 15, answerSeconds: 10 },
+  zeitstrahl: { lines: 2, turns: 2, turnSeconds: 15, betSeconds: 5 },
+  emoji: { rounds: 4, answerSeconds: 16 },
 }[game] || {};
 for (const [key, value] of Object.entries(fast)) await opx('setOption', { key, value });
 if (process.env.AUTO) await opx('setRoom', { manualAdvance: false });
@@ -192,6 +201,55 @@ while (Date.now() - t0 < 6 * 60e3) {
     if (g.type === 'schaetzen' && g.canGuess && g.myGuess == null && key(`e${g.round}`)) {
       const a = schaetz.get(g.q) || 100;
       b.emit('act', { type: 'answer', text: String(Math.round(a * (0.5 + Math.random()))) });
+    }
+  }
+  // Neue Spiele
+  for (const b of bots) {
+    const g = b.st?.game;
+    if (!g || b.st.paused) continue;
+    const key = (k) => { if (b.done.has(k)) return false; b.done.add(k); return true; };
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    if (g.type === 'werwars') {
+      if (g.canAnswer && !g.myAnswer && !g.passed && key(`a${g.round}${g.q}`)) {
+        if (b.name === 'Dana') b.emit('act', { type: 'pass' }); else b.emit('act', { type: 'answer', text: `Antwort von ${b.name}` });
+      }
+      if (g.canGuess && key(`g${g.round}`)) {
+        for (const e of g.list.filter((x) => !x.mine)) await b.emit('act', { type: 'guess', id: e.id, target: pick(g.authors.filter((p) => p !== b.st.me.id)) });
+        b.emit('act', { type: 'done' });
+      }
+    }
+    if (g.type === 'minderheit' && g.canVote && g.myVote == null && key(`v${g.round}`)) b.emit('act', { type: 'vote', idx: Math.floor(Math.random() * g.options.length) });
+    if (g.type === 'verhoer' && g.canAct && key(`q${g.round}-${g.questions.length}-${Math.floor(Date.now() / 2500)}`)) {
+      if (Math.random() < 0.25) b.emit('act', { type: 'solve', text: pick(['Giraffe', 'Eiffelturm', 'Pizza', 'Auto']) });
+      else b.emit('act', { type: 'ask', text: pick(['Ist es ein Tier?', 'Kann man es essen?', 'Ist es größer als ein Auto?', 'Lebt es noch?']) }).then((r) => r.error && log(b.name, r.error));
+    }
+    if (g.type === 'auktion') {
+      if (g.canBid && key(`b${g.round}`)) { await b.emit('act', { type: 'bid', amount: pick([0, 100, 250, 400]) }); b.emit('act', { type: 'lock' }); }
+      if (g.canBid && key(`c${g.round}`)) b.emit('act', { type: 'chat', text: `${b.name}: bieten wir was?` });
+      if (g.canAnswer && key(`a${g.round}`)) b.emit('act', { type: 'answer', text: Math.random() < b.skill ? answers.get(g.q) || 'weiß nicht' : 'keine ahnung' });
+    }
+    if (g.type === 'zeitstrahl') {
+      if (g.canPlace && key(`p${g.line}-${g.turnNo}`)) b.emit('act', { type: 'place', cardId: g.offer[0].id, gap: Math.floor(Math.random() * (g.cards.length + 1)) });
+      if (g.canBet && key(`b${g.line}-${g.turnNo}`)) b.emit('act', { type: 'bet', ok: Math.random() < 0.5 });
+    }
+    if (g.type === 'emoji' && g.canGuess && key(`e${g.round}-${Math.floor(Date.now() / 3000)}`)) {
+      b.emit('act', { type: 'answer', text: Math.random() < b.skill * 0.5 ? emojiAnswers.get(g.e) : pick(['Titanic', 'Hund', 'Batman']) });
+    }
+  }
+  // Operator der neuen Spiele: Fragen ohne KI beantworten, je eine Korrektur testen
+  {
+    const g = host.st.game;
+    if (g?.type === 'verhoer') for (const q of g.questions.filter((x) => x.pending && !x.solve)) await opx('game', { action: { type: 'setAnswer', id: q.id, answer: pick2(['ja', 'nein', 'teilweise']) } });
+    if (!overrideOnce && g) {
+      const t = g.type, ph = g.phase;
+      let action = null;
+      if (t === 'werwars' && ph === 'reveal' && g.list.length) action = { type: 'exclude', id: g.list[0].id };
+      if (t === 'minderheit' && ph === 'reveal') action = { type: 'setVote', pid: host.st.me.id, idx: 0 };
+      if (t === 'zeitstrahl' && ph === 'result') action = { type: 'flip' };
+      if (t === 'auktion' && ph === 'result') action = { type: 'override', ok: !g.result?.ok };
+      if (t === 'emoji' && ph === 'guess') { const c = g.chat.find((x) => x.kind === 'guess' && !g.solved[x.pid]); if (c) action = { type: 'accept', id: c.id }; }
+      if (t === 'verhoer' && ph === 'result') action = { type: 'undoWin' };
+      if (action) { overrideOnce = true; log('Operator-Korrektur:', JSON.stringify(action)); await opx('game', { action }); }
     }
   }
   // Operator-Korrektur einmal testen

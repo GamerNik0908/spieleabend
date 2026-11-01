@@ -8,7 +8,7 @@ import { DuemmsteOps } from './games/duemmste.js';
 import { MontagsmalerOps } from './games/montagsmaler.js';
 
 const GAME_OPS = { quizduell: QuizDuellOps, familienduell: FamilienDuellOps, duemmste: DuemmsteOps, montagsmaler: MontagsmalerOps };
-const TIMER_NAMES = { answer: 'Antwortzeit', vote: 'Abstimmung', round: 'Rundenzeit', phase: 'Nächster Schritt', buzz: 'Buzzer', pick: 'Feldwahl', draw: 'Zeichenzeit', choose: 'Begriffswahl' };
+const TIMER_NAMES = { answer: 'Antwortzeit', vote: 'Abstimmung', round: 'Rundenzeit', phase: 'Nächster Schritt', buzz: 'Buzzer', pick: 'Feldwahl', draw: 'Zeichenzeit', choose: 'Begriffswahl', hint: 'Bis zum Tipp', lastChance: 'Letzte Chance', reveal: 'Nächstes Aufdecken' };
 
 const edit = (e) => op('edit', { edit: e });
 

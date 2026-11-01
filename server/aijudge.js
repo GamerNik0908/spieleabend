@@ -71,6 +71,17 @@ Fasse NICHT zusammen, was nur verwandt oder ähnlich ist, aber etwas anderes mei
 Jede Antwort-Nummer muss in genau einer Gruppe stehen. ${RULES_INJECTION}
 Antworte nur im vorgegebenen JSON-Format.`;
 
+const ASK_SYSTEM = `Du bist der Spielleiter beim Ratespiel „Das Verhör“ auf einem deutschen Spieleabend.
+Du kennst einen geheimen Begriff. Die Spieler stellen Ja/Nein-Fragen, um ihn zu erraten.
+Beantworte jede Frage ehrlich und konsequent aus Sicht des geheimen Begriffs:
+- "ja" oder "nein", wenn die Frage klar so beantwortet werden kann
+- "teilweise", wenn es nur manchmal, zum Teil oder in gewisser Weise stimmt
+- "unklar", wenn die Frage keine Ja/Nein-Frage ist, unverständlich ist oder sich nicht sinnvoll beantworten lässt
+Verrate den Begriff niemals und gib keine zusätzlichen Hinweise.
+Setze solved=true nur, wenn die Frage den geheimen Begriff (oder ein echtes Synonym davon) direkt nennt, z. B. "Ist es eine Giraffe?".
+${RULES_INJECTION}
+Antworte nur im vorgegebenen JSON-Format.`;
+
 const Verdict = z.object({
   match: z.number().int().describe('Index der passenden Lösung, oder -1 wenn keine passt'),
   reason: z.string().describe('Sehr kurze Begründung auf Deutsch'),
@@ -82,6 +93,18 @@ const VerdictGemini = {
     reason: { type: 'STRING', description: 'Sehr kurze Begründung auf Deutsch' },
   },
   required: ['match', 'reason'],
+};
+const AskAnswer = z.object({
+  answer: z.enum(['ja', 'nein', 'teilweise', 'unklar']),
+  solved: z.boolean().describe('true, wenn die Frage den geheimen Begriff direkt nennt'),
+});
+const AskAnswerGemini = {
+  type: 'OBJECT',
+  properties: {
+    answer: { type: 'STRING', enum: ['ja', 'nein', 'teilweise', 'unklar'] },
+    solved: { type: 'BOOLEAN' },
+  },
+  required: ['answer', 'solved'],
 };
 const Groups = z.object({
   groups: z.array(z.array(z.number().int())).describe('Gruppen von Antwort-Nummern, die dasselbe meinen'),
@@ -158,6 +181,23 @@ ${answers.map((a, i) => `${i}: """${String(a).slice(0, 60)}"""`).join('\n')}`;
   }
   answers.forEach((_, i) => { if (!seen.has(i)) groups.push([i]); });
   return remember(key, groups);
+}
+
+/**
+ * Beantwortet eine Ja/Nein-Frage zu einem geheimen Begriff (Das Verhör).
+ * Rückgabe: { answer: 'ja'|'nein'|'teilweise'|'unklar', solved: boolean } oder null
+ */
+export async function aiAsk({ secret, cat, info, question }) {
+  if (!PROVIDER) return null;
+  const key = `a|${secret}|${normalize(question)}`;
+  if (cache.has(key)) return cache.get(key);
+  if (!allowCall()) return null;
+  const content = `Geheimer Begriff: ${secret} (Kategorie: ${cat || '–'})
+Hintergrund: ${info || '–'}
+Frage des Spielers: """${String(question).slice(0, 160)}"""`;
+  const parsed = await ask(ASK_SYSTEM, content, AskAnswer, AskAnswerGemini, 200);
+  if (!parsed || !['ja', 'nein', 'teilweise', 'unklar'].includes(parsed.answer)) return null;
+  return remember(key, { answer: parsed.answer, solved: !!parsed.solved });
 }
 
 async function ask(system, content, zodSchema, geminiSchema, maxTokens = 400) {

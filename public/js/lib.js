@@ -338,6 +338,7 @@ export function DoneRow({ st, ids, done }) {
 export const GAME_EMOJI = {
   quizduell: '⚡', familienduell: '📊', duemmste: '🧠', montagsmaler: '🎨', luegenbaron: '🤥',
   spion: '🕵️', witzbold: '😂', schaetzen: '🎯', gleichdenker: '🧩',
+  werwars: '🕶️', minderheit: '🐑', verhoer: '🎭', auktion: '💰', zeitstrahl: '📏', emoji: '😶',
 };
 const EMOJI_GAME = Object.fromEntries(Object.entries(GAME_EMOJI).map(([k, v]) => [v, k]));
 const missing = new Set();

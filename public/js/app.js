@@ -17,6 +17,12 @@ import { SpionView } from './games/spion.js';
 import { WitzboldView } from './games/witzbold.js';
 import { SchaetzenView } from './games/schaetzen.js';
 import { GleichdenkerView } from './games/gleichdenker.js';
+import { WerwarsView } from './games/werwars.js';
+import { MinderheitView } from './games/minderheit.js';
+import { VerhoerView } from './games/verhoer.js';
+import { AuktionView } from './games/auktion.js';
+import { ZeitstrahlView } from './games/zeitstrahl.js';
+import { EmojiView } from './games/emoji.js';
 
 // ---------- Socket-Verdrahtung ----------
 socket.on('connect', async () => {
@@ -94,7 +100,7 @@ function Home() {
     <div class="hero rise">
       <span class="hero-logo-wrap"><${AssetImg} src="/assets/logo.webp" fallback=${null} alt="Spieleabend" /></span>
       <h1><span class="w1">Spiele</span><span class="w2">abend</span></h1>
-      <p>Neun Gameshows für euren Abend – ein Raum, alle von überall.</p>
+      <p>15 Gameshows für euren Abend – ein Raum, alle von überall.</p>
     </div>
     <div class="card name-card rise">
       <label class="field">Wie heißt du?
@@ -218,6 +224,7 @@ function TopBar({ st }) {
 const GAME_VIEWS = {
   quizduell: QuizDuellView, familienduell: FamilienDuellView, duemmste: DuemmsteView,
   montagsmaler: MontagsmalerView, luegenbaron: LuegenbaronView, spion: SpionView, witzbold: WitzboldView, schaetzen: SchaetzenView, gleichdenker: GleichdenkerView,
+  werwars: WerwarsView, minderheit: MinderheitView, verhoer: VerhoerView, auktion: AuktionView, zeitstrahl: ZeitstrahlView, emoji: EmojiView,
 };
 
 function Room({ st }) {

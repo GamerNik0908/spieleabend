@@ -1,6 +1,6 @@
 # 🎲 Spieleabend
 
-Eine Website für euren Online-Spieleabend mit neun Spielen:
+Eine Website für euren Online-Spieleabend mit 15 Spielen:
 
 | Spiel | Prinzip |
 |---|---|
@@ -13,6 +13,17 @@ Eine Website für euren Online-Spieleabend mit neun Spielen:
 | 😂 **Witzbold** | Je zwei beantworten denselben lustigen Satzanfang, alle anderen stimmen ab. Einstimmig = Witzbold-Bonus. Finale für alle. (ab 3) |
 | 🧩 **Gleichdenker** | Teams beantworten geheim dieselbe offene Frage – Punkte nur für gleiche Antworten im Team (alle gleich = 3, zwei gleich = 1). Passt sich jeder Teamgröße an. |
 | 🎯 **Schätzmeister** | Alle schätzen dieselbe Zahl, Auflösung auf dem Zahlenstrahl. Am nächsten dran gewinnt, Volltreffer gibt Bonus. |
+
+**Neu – noch nicht getestet** (in der Lobby extra markiert):
+
+| Spiel | Prinzip |
+|---|---|
+| 🕶️ **Wer war's?** | Alle beantworten geheim eine persönliche Frage (oder passen), dann wird anonym zugeordnet, wer was geschrieben hat. (ab 3) |
+| 🐑 **Die Minderheit gewinnt** | Frage mit 3–4 Antworten, Punkte nur für die kleinste Gruppe. (ab 3) |
+| 🎭 **Das Verhör** | Die KI kennt einen Begriff, ihr fragt mit Ja/Nein-Fragen. Wahlweise alle gegen die KI oder Teams gegeneinander. Ohne KI antwortet der Operator. |
+| 💰 **Wissens-Auktion** | Teams sehen nur die Kategorie und bieten geheim Punkte (mit Team-Chat). Höchstes Gebot antwortet: richtig = Gebot dazu, falsch = weg. |
+| 📏 **Zeitstrahl** | Karte aus mehreren aussuchen und an die richtige Stelle legen – nach Jahr oder Preis. Die anderen wetten mit. |
+| 😶 **Emoji-Kino** | Emoji-Rätsel zu Filmen, Songs, Sprichwörtern – wer zuerst richtig tippt, gewinnt. Tipp zur Halbzeit. |
 
 **Gesprochen wird nebenbei (Discord, TeamSpeak …)** – die Antworten werden getippt und automatisch geprüft.
 

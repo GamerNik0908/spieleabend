@@ -1,8 +1,8 @@
 // Gemeinsame Bausteine für alle Spiele: Bewertung (lokal + optional KI),
 // Team-Rotation, Fragen ziehen ohne Wiederholung.
 import { scoreAnswer, matchAmong } from '../matcher.js';
-import { aiJudge, aiGroup } from '../aijudge.js';
-export { aiGroup };
+import { aiJudge, aiGroup, aiAsk } from '../aijudge.js';
+export { aiGroup, aiAsk };
 import * as store from '../store.js';
 
 export function shuffle(arr) {

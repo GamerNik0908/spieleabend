@@ -10,6 +10,9 @@ import * as store from './store.js';
 import { catalogStats } from './data/index.js';
 import { aiEnabled, aiProvider } from './aijudge.js';
 
+// Sicherheitsnetz: ein Fehler in einem Spiel soll nie den ganzen Abend beenden
+process.on('unhandledRejection', (err) => console.error('[Fehler]', err?.message || err));
+
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
 const PORT = Number(process.env.PORT || 3000);

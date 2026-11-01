@@ -80,6 +80,58 @@ Object.assign(GAME_INFO, {
   },
 });
 
+// Neue Spiele – erscheinen in der Lobby unter „Neu – noch nicht getestet“
+Object.assign(GAME_INFO, {
+  werwars: {
+    isNew: true, emoji: '🕶️', title: "Wer war's?", desc: 'Alle antworten anonym – errätst du, wer was geschrieben hat?',
+    rules: [
+      'Alle beantworten geheim dieselbe persönliche Frage. Fällt dir nichts ein? Einfach passen.',
+      'Dann erscheinen die Antworten anonym und gemischt. Ordne jeder Antwort zu, von wem sie ist.',
+      'Richtig zugeordnet: +100. Für jeden, der deine Antwort jemand anderem zuordnet: +50 für dich. (ab 3 Spielern)',
+    ],
+  },
+  minderheit: {
+    isNew: true, emoji: '🐑', title: 'Die Minderheit gewinnt', desc: 'Punkte gibt es nur für die kleinste Gruppe.',
+    rules: [
+      'Eine Frage, drei bis vier Antworten – jeder wählt geheim.',
+      'Nur wer in der kleinsten Gruppe landet, bekommt +200. Haben alle dasselbe, gewinnt keiner.',
+      'Denk also, was die anderen NICHT denken. Die letzte Frage zählt doppelt. (ab 3 Spielern)',
+    ],
+  },
+  verhoer: {
+    isNew: true, emoji: '🎭', title: 'Das Verhör', desc: 'Die KI denkt sich etwas aus – ihr fragt sie mit Ja/Nein-Fragen aus.',
+    rules: [
+      'Die KI kennt einen geheimen Begriff (Tier, Promi, Ort, Ding …). Ihr kennt nur die Kategorie.',
+      'Stellt Ja/Nein-Fragen. Die KI antwortet mit Ja, Nein, Teilweise oder Unklar. Mit „Lösen“ ratet ihr den Begriff.',
+      'Modus „Alle gegen die KI“: Ihr habt gemeinsam begrenzte Fragen. Modus „Teams“: abwechselnd fragen, wer zuerst löst, gewinnt – je weniger Fragen, desto mehr Punkte.',
+    ],
+  },
+  auktion: {
+    isNew: true, emoji: '💰', title: 'Wissens-Auktion', desc: 'Erst die Kategorie, dann bieten – wer traut sich die Frage zu?',
+    rules: [
+      'Jedes Team startet mit Punkten. Zuerst seht ihr nur die Kategorie und die Schwierigkeit.',
+      'Jedes Team bietet geheim (Absprache im Team-Chat). Das höchste Gebot muss die Frage beantworten.',
+      'Richtig: Gebot dazu. Falsch: Gebot weg. Bietet keiner etwas, gibt es eine Freifrage.',
+    ],
+  },
+  zeitstrahl: {
+    isNew: true, emoji: '📏', title: 'Zeitstrahl', desc: 'Leg die Karte an die richtige Stelle – nach Jahr oder Preis.',
+    rules: [
+      'Auf dem Strahl liegt eine Startkarte. Reihum bekommt jeder mehrere zufällige Karten und sucht sich eine aus.',
+      'Leg sie an die richtige Stelle – je Strahl nach Jahr oder nach Preis, die Karten sind bunt gemischt.',
+      'Richtig: Punkte (je voller der Strahl, desto mehr). Die anderen wetten mit: liegt sie richtig? Richtig gewettet: +50.',
+    ],
+  },
+  emoji: {
+    isNew: true, emoji: '😶', title: 'Emoji-Kino', desc: 'Film, Song oder Sprichwort in Emojis – wer erkennt es zuerst?',
+    rules: [
+      'Ein Emoji-Rätsel erscheint: Film, Serie, Lied, Sprichwort, Person …',
+      'Tippt so oft ihr wollt. Je schneller richtig, desto mehr Punkte – der Erste bekommt einen Bonus.',
+      'Nach der halben Zeit gibt es einen Tipp.',
+    ],
+  },
+});
+
 export const OPTION_DEFS = {
   quizduell: [
     ['rounds', 'Runden', 1], ['cols', 'Kategorien', 1], ['rows', 'Felder pro Kategorie', 1],
@@ -104,6 +156,18 @@ export const OPTION_DEFS = {
   witzbold: [['rounds', 'Runden', 1], ['answerSeconds', 'Schreibzeit (Sek.)', 10], ['voteSeconds', 'Abstimmzeit (Sek.)', 5], ['final', 'Finale', 'bool']],
   schaetzen: [['rounds', 'Fragen', 1], ['answerSeconds', 'Schätzzeit (Sek.)', 5]],
   gleichdenker: [['rounds', 'Fragen', 1], ['answerSeconds', 'Antwortzeit (Sek.)', 5]],
+  werwars: [['rounds', 'Fragen', 1], ['answerSeconds', 'Antwortzeit (Sek.)', 10], ['guessSeconds', 'Ratezeit (Sek.)', 10]],
+  minderheit: [['rounds', 'Fragen', 1], ['voteSeconds', 'Wahlzeit (Sek.)', 5]],
+  verhoer: [
+    ['teamMode', 'Teams gegeneinander (aus = alle gegen die KI)', 'bool'], ['rounds', 'Begriffe', 1],
+    ['maxQuestions', 'Fragen pro Begriff', 1], ['roundSeconds', 'Zeit pro Begriff (Sek.)', 30], ['turnSeconds', 'Zeit pro Team-Zug (Sek.)', 5],
+  ],
+  auktion: [['rounds', 'Fragen', 1], ['startPoints', 'Startpunkte', 100], ['bidSeconds', 'Bietzeit (Sek.)', 5], ['answerSeconds', 'Antwortzeit (Sek.)', 5]],
+  zeitstrahl: [
+    ['lines', 'Strahlen', 1], ['turns', 'Züge pro Spieler und Strahl', 1], ['choices', 'Karten zur Auswahl', 1],
+    ['turnSeconds', 'Zugzeit (Sek.)', 5], ['betSeconds', 'Wettzeit (Sek.)', 1], ['years', 'Strahl nach Jahr', 'bool'], ['prices', 'Strahl nach Preis', 'bool'],
+  ],
+  emoji: [['rounds', 'Rätsel', 1], ['answerSeconds', 'Ratezeit (Sek.)', 5], ['hints', 'Tipp zur Halbzeit', 'bool']],
   duemmste: [
     ['lives', 'Leben', 1], ['roundSeconds', 'Rundenzeit (Sek.)', 30], ['answerSeconds', 'Antwortzeit (Sek.)', 1],
     ['voteSeconds', 'Abstimmzeit (Sek.)', 5],
@@ -219,17 +283,20 @@ function GameSetup({ st }) {
   const info = GAME_INFO[st.gameType];
   const opName = st.players.find((p) => p.isOperator)?.name;
   const n = st.players.length;
-  const minP = { familienduell: 2, montagsmaler: 2, luegenbaron: 2, spion: 3, witzbold: 3 }[st.gameType];
+  const minP = { familienduell: 2, montagsmaler: 2, luegenbaron: 2, spion: 3, witzbold: 3, werwars: 3, minderheit: 3, auktion: 2 }[st.gameType];
   const warn = minP && n < minP ? `${info.title} braucht mindestens ${minP} Spieler.`
     : st.gameType === 'duemmste' && n < 3 ? 'Der Dümmste fliegt macht erst ab 3 Spielern richtig Spaß (zu zweit geht es direkt ins Finale).' : '';
   return html`<div class="col" style="gap:16px">
-    <div class="games-pick">
-      ${Object.entries(GAME_INFO).map(([key, g]) => html`<div key=${key} data-g=${key}
-        class=${`game-card ${st.gameType === key ? 'active' : ''} ${isOp ? '' : 'readonly'}`}
-        onClick=${() => isOp && st.gameType !== key && op('setGame', { game: key })}>
-        <${GameIcon} id=${key} size=${52} /><h3>${g.title}</h3><p>${g.desc}</p>
+    ${[[false, null], [true, '🧪 Neu – noch nicht getestet']].map(([isNew, label]) => html`
+      ${label && html`<div class="section-title games-new-title">${label}</div>`}
+      <div class="games-pick">
+        ${Object.entries(GAME_INFO).filter(([, g]) => !!g.isNew === isNew).map(([key, g]) => html`<div key=${key} data-g=${key}
+          class=${`game-card ${st.gameType === key ? 'active' : ''} ${isOp ? '' : 'readonly'} ${g.isNew ? 'is-new' : ''}`}
+          onClick=${() => isOp && st.gameType !== key && op('setGame', { game: key })}>
+          ${g.isNew && html`<span class="new-badge">NEU</span>`}
+          <${GameIcon} id=${key} emoji=${g.emoji} size=${52} /><h3>${g.title}</h3><p>${g.desc}</p>
+        </div>`)}
       </div>`)}
-    </div>
     <div class="card">
       <div class="row wrap" style="margin-bottom:14px"><${GameIcon} id=${st.gameType} size=${40} /><h3 style="margin:0">${info.title}</h3><div class="spacer"></div>
         ${!isOp && html`<span class="pill">Einstellungen macht ${opName}</span>`}</div>

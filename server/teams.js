@@ -17,6 +17,8 @@ export function defaultTeamCount(game, n) {
     if (n <= 3) return Math.max(1, n); // jeder für sich
     return Math.min(4, Math.max(2, Math.ceil(n / 3))); // 4→2×2, 6→2×3, 7→3,2,2, 9→3×3, 12→4×3
   }
+  if (game === 'auktion') return n < 2 ? 1 : Math.min(4, Math.max(2, Math.ceil(n / 3)));
+  if (game === 'verhoer') return n < 4 ? 1 : 2; // im KI-Modus spielen ohnehin alle zusammen
   return 0; // Einzelspiel
 }
 

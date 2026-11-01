@@ -2,6 +2,40 @@
 import { html, op, useEffect, AssetImg } from './lib.js';
 
 export const TUTORIALS = {
+  werwars: [
+    { icon: '🕶️', title: "Wer war's?", text: 'Alle beantworten geheim dieselbe persönliche Frage – kurz, ehrlich oder schön geschwindelt.' },
+    { icon: '🙅', title: 'Keine Ahnung?', text: 'Fällt dir nichts ein, drück auf „Passen“. Raten darfst du trotzdem. Der Operator kann die Frage auch für alle tauschen.' },
+    { icon: '🔍', title: 'Zuordnen', text: 'Dann erscheinen alle Antworten anonym. Klick bei jeder Antwort auf den Namen, von dem du glaubst, dass sie stammt.' },
+    { icon: '🏅', title: 'Punkte', text: 'Richtig zugeordnet: +100. Für jeden, der deine Antwort jemand anderem zuordnet: +50 für dich. Gut tarnen lohnt sich!' },
+  ],
+  minderheit: [
+    { icon: '🐑', title: 'Die Minderheit gewinnt', text: 'Eine Frage, drei oder vier Antworten. Jeder wählt geheim.' },
+    { icon: '🤏', title: 'Klein gewinnt', text: 'Nur die kleinste Gruppe bekommt Punkte (+200). Wählen alle dasselbe, gewinnt keiner.' },
+    { icon: '🧠', title: 'Um die Ecke denken', text: 'Was würden die anderen wählen? Genau das nicht! Die Gruppen werden von groß nach klein aufgedeckt. Letzte Frage ×2.' },
+  ],
+  verhoer: [
+    { icon: '🎭', title: 'Das Verhör', text: 'Die KI kennt einen geheimen Begriff – ein Tier, einen Promi, einen Ort, ein Ding … Ihr seht nur die Kategorie.' },
+    { icon: '❓', title: 'Fragen', text: 'Stellt Ja/Nein-Fragen, z. B. „Ist es größer als ein Auto?“. Die KI antwortet mit Ja, Nein, Teilweise oder Unklar.' },
+    { icon: '🎯', title: 'Lösen', text: 'Wer glaubt, es zu wissen, drückt auf „Lösen“. Jeder hat drei Rateversuche pro Begriff. Je weniger Fragen gebraucht, desto mehr Punkte.' },
+    { icon: '⚔️', title: 'Zwei Modi', text: 'Alle gegen die KI: Ihr habt gemeinsam begrenzte Fragen. Teams: Die Teams fragen abwechselnd – wer zuerst löst, gewinnt.' },
+  ],
+  auktion: [
+    { icon: '💰', title: 'Wissens-Auktion', text: 'Jedes Team startet mit Punkten. Zuerst seht ihr nur die Kategorie und die Schwierigkeit – nicht die Frage!' },
+    { icon: '💬', title: 'Absprechen', text: 'Im Team-Chat besprecht ihr, wie viel ihr bietet. Nur euer Team liest mit.' },
+    { icon: '🔨', title: 'Bieten', text: 'Jedes Team bietet geheim. Die Gebote werden aufgedeckt – das höchste muss antworten.' },
+    { icon: '⚖️', title: 'Alles oder nichts', text: 'Richtig: Gebot dazu. Falsch: Gebot weg. Bietet keiner, gibt es eine Freifrage.' },
+  ],
+  zeitstrahl: [
+    { icon: '📏', title: 'Zeitstrahl', text: 'Auf dem Strahl liegt eine Startkarte. Je Strahl wird nach Jahr oder nach Preis sortiert – die Karten sind bunt gemischt.' },
+    { icon: '🃏', title: 'Karte aussuchen', text: 'Wer dran ist, bekommt mehrere zufällige Karten und sucht sich die aus, bei der er sich am sichersten ist.' },
+    { icon: '⬇️', title: 'Einordnen', text: 'Dann auf „hier“ an die richtige Stelle klicken. Richtig: Punkte – je voller der Strahl, desto mehr.' },
+    { icon: '🎲', title: 'Mitwetten', text: 'Alle anderen wetten: Liegt die Karte richtig? Richtig gewettet: +50.' },
+  ],
+  emoji: [
+    { icon: '😶', title: 'Emoji-Kino', text: 'Ein Emoji-Rätsel steht für einen Film, ein Lied, ein Sprichwort, eine Person …' },
+    { icon: '⌨️', title: 'Raten', text: 'Tippt so oft ihr wollt. Tippfehler sind egal. Je schneller richtig, desto mehr Punkte – der Erste bekommt einen Bonus.' },
+    { icon: '💡', title: 'Tipp', text: 'Nach der halben Zeit gibt es einen Tipp für alle.' },
+  ],
   quizduell: [
     { icon: '⚡', title: 'Quiz Duell', text: 'Ein Spielbrett mit 6 Kategorien und Feldern von 100 bis 400 Punkten. Ihr spielt in Teams.' },
     { icon: '👆', title: 'Feld wählen', text: 'Die Teams sind nacheinander dran. Reihum wählt ein Teammitglied ein Feld – je höher der Wert, desto schwerer die Frage.' },

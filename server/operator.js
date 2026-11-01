@@ -18,6 +18,12 @@ const OPTION_LIMITS = {
   witzbold: { rounds: [1, 3], answerSeconds: [30, 180], voteSeconds: [10, 45], final: 'bool' },
   schaetzen: { rounds: [3, 20], answerSeconds: [10, 60] },
   gleichdenker: { rounds: [3, 20], answerSeconds: [10, 90] },
+  werwars: { rounds: [2, 15], answerSeconds: [20, 180], guessSeconds: [20, 180] },
+  minderheit: { rounds: [3, 25], voteSeconds: [8, 60] },
+  verhoer: { teamMode: 'bool', rounds: [1, 10], maxQuestions: [5, 40], roundSeconds: [60, 900], turnSeconds: [15, 120] },
+  auktion: { rounds: [3, 20], bidSeconds: [15, 120], answerSeconds: [10, 90], startPoints: [200, 5000] },
+  zeitstrahl: { lines: [1, 6], turns: [1, 8], choices: [1, 5], turnSeconds: [15, 120], betSeconds: [5, 30], years: 'bool', prices: 'bool' },
+  emoji: { rounds: [3, 30], answerSeconds: [15, 120], hints: 'bool' },
 };
 
 export function handleOp(room, by, a) {

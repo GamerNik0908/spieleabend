@@ -13,6 +13,12 @@ import { Spion } from './games/spion.js';
 import { Witzbold } from './games/witzbold.js';
 import { Schaetzen } from './games/schaetzen.js';
 import { Gleichdenker } from './games/gleichdenker.js';
+import { Werwars } from './games/werwars.js';
+import { Minderheit } from './games/minderheit.js';
+import { Verhoer } from './games/verhoer.js';
+import { Auktion } from './games/auktion.js';
+import { Zeitstrahl } from './games/zeitstrahl.js';
+import { EmojiKino } from './games/emoji.js';
 import { catalogStats } from './data/index.js';
 
 export const GAMES = {
@@ -25,6 +31,13 @@ export const GAMES = {
   witzbold: { cls: Witzbold, title: 'Witzbold', teams: false, min: 3 },
   schaetzen: { cls: Schaetzen, title: 'Schätzmeister', teams: false },
   gleichdenker: { cls: Gleichdenker, title: 'Gleichdenker', teams: true, min: 2 },
+  // Neu – noch nicht getestet
+  werwars: { cls: Werwars, title: "Wer war's?", teams: false, min: 3, isNew: true },
+  minderheit: { cls: Minderheit, title: 'Die Minderheit gewinnt', teams: false, min: 3, isNew: true },
+  verhoer: { cls: Verhoer, title: 'Das Verhör', teams: true, isNew: true },
+  auktion: { cls: Auktion, title: 'Wissens-Auktion', teams: true, min: 2, isNew: true },
+  zeitstrahl: { cls: Zeitstrahl, title: 'Zeitstrahl', teams: false, isNew: true },
+  emoji: { cls: EmojiKino, title: 'Emoji-Kino', teams: false, isNew: true },
 };
 
 const token = () => crypto.randomBytes(16).toString('hex');
@@ -37,17 +50,7 @@ export class Room {
     this.operatorId = null;
     this.game = null;
     this.gameType = 'quizduell';
-    this.options = {
-      quizduell: QuizDuell.defaultOptions(),
-      familienduell: FamilienDuell.defaultOptions(),
-      duemmste: Duemmste.defaultOptions(),
-      montagsmaler: Montagsmaler.defaultOptions(),
-      luegenbaron: Luegenbaron.defaultOptions(),
-      spion: Spion.defaultOptions(),
-      witzbold: Witzbold.defaultOptions(),
-      schaetzen: Schaetzen.defaultOptions(),
-      gleichdenker: Gleichdenker.defaultOptions(),
-    };
+    this.options = Object.fromEntries(Object.entries(GAMES).map(([k, g]) => [k, g.cls.defaultOptions()]));
     this.teams = null;
     this.teamCount = null;
     this.teamsManual = false; // true, sobald der Operator Teams von Hand ändert
@@ -322,7 +325,10 @@ export class Room {
     for (const [key, t] of [...this.timers]) {
       if (now >= t.deadline && this.timers.get(key) === t) {
         this.timers.delete(key);
-        try { t.cb(); } catch (err) { console.error('Timer-Fehler', key, err); }
+        try {
+          const res = t.cb();
+          if (res?.catch) res.catch((err) => console.error('Timer-Fehler', key, err.message));
+        } catch (err) { console.error('Timer-Fehler', key, err); }
         this.changed();
       }
     }
@@ -442,7 +448,9 @@ export class Room {
     for (const p of this.players.values()) {
       for (const sid of p.sockets) {
         const s = this.io.sockets.sockets.get(sid);
-        if (s) s.emit('state', this.view(p.id));
+        if (!s) continue;
+        // Ein Fehler in einer Spielansicht darf nie den ganzen Server lahmlegen
+        try { s.emit('state', this.view(p.id)); } catch (err) { console.error('[Ansicht]', this.gameType, err); }
       }
     }
   }
@@ -469,7 +477,7 @@ export class Room {
       paused: this.paused,
       screen: this.game ? 'game' : this.results ? 'results' : 'lobby',
       gameType: this.gameType,
-      games: Object.fromEntries(Object.entries(GAMES).map(([k, g]) => [k, { title: g.title, teams: g.teams }])),
+      games: Object.fromEntries(Object.entries(GAMES).map(([k, g]) => [k, { title: g.title, teams: g.teams, isNew: !!g.isNew }])),
       options: this.options,
       teams: this.teams,
       teamCount: this.teamCount,
