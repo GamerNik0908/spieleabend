@@ -315,6 +315,18 @@ export class QuizDuell extends Game {
     this.changed();
   }
 
+  // Operator-Bearbeitung (Pause): Team am Zug wechseln
+  edit(by, e) {
+    if (e.field !== 'turn' || this.phase !== 'pick') throw new Error('Nur während der Feldwahl möglich');
+    const idx = this.teams.findIndex((t) => t.id === e.teamId);
+    if (idx < 0) throw new Error('Team nicht gefunden');
+    this.turnIdx = idx;
+    this.turn = this.teams[idx].id;
+    this.picker = this.nextMember(this.teams[idx]);
+    this.room.opAnnounce(by, `gibt den Zug an ${this.teams[idx].name}`);
+    return true;
+  }
+
   view(pid) {
     const cur = this.cur;
     const myTeam = this.teamOf(pid);

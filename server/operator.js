@@ -12,6 +12,11 @@ const OPTION_LIMITS = {
     buzzSeconds: [5, 30], finalSeconds: [10, 60], lastRoundDouble: 'bool',
   },
   duemmste: { lives: [1, 5], roundSeconds: [30, 600], answerSeconds: [5, 40], voteSeconds: [15, 120] },
+  montagsmaler: { rounds: [1, 4], drawSeconds: [30, 180], choiceSeconds: [5, 30], hints: 'bool' },
+  luegenbaron: { rounds: [2, 12], writeSeconds: [20, 120], voteSeconds: [10, 60] },
+  spion: { rounds: [1, 12], clueRounds: [1, 3], clueSeconds: [10, 60], voteSeconds: [20, 180], guessSeconds: [10, 60] },
+  witzbold: { rounds: [1, 3], answerSeconds: [30, 180], voteSeconds: [10, 45], final: 'bool' },
+  schaetzen: { rounds: [3, 20], answerSeconds: [10, 60] },
 };
 
 export function handleOp(room, by, a) {
@@ -126,6 +131,52 @@ export function handleOp(room, by, a) {
       const label = room.game.adjustScore(a.unitId, delta);
       if (!label) throw new Error('Team nicht gefunden');
       room.opAnnounce(by, `${delta > 0 ? 'gibt' : 'zieht'} ${label} ${Math.abs(delta)} Punkte ${delta > 0 ? '' : 'ab'}`.trim());
+      break;
+    }
+    case 'tutorial': {
+      const game = a.game || room.gameType;
+      if (!GAMES[game]) throw new Error('Unbekanntes Spiel');
+      room.tutorial = { game, step: Math.max(0, Number(a.step) || 0) };
+      break;
+    }
+    case 'tutorialClose':
+      room.tutorial = null;
+      break;
+    case 'edit': {
+      // Bearbeiten (vor allem in der Pause): Punkte, Timer, Einstellungen, Spieldetails
+      const g = room.game;
+      if (!g) throw new Error('Kein Spiel aktiv.');
+      const e = a.edit || {};
+      if (e.kind === 'score') {
+        const v = Math.round(Number(e.value));
+        if (!Number.isFinite(v)) throw new Error('Ungültige Zahl');
+        const label = g.setScore?.(e.unitId, v);
+        if (!label) throw new Error('Nicht gefunden');
+        room.opAnnounce(by, `setzt die Punkte von ${label} auf ${v}`);
+      } else if (e.kind === 'timer') {
+        const sec = Math.round(Number(e.seconds));
+        if (!Number.isFinite(sec) || sec < 1) throw new Error('Ungültige Zeit');
+        if (!room.setTimerRemaining(e.key, sec * 1000)) throw new Error('Timer läuft nicht');
+        room.opAnnounce(by, `stellt die Uhr auf ${sec} Sekunden ⏱`);
+      } else if (e.kind === 'option') {
+        const lim = OPTION_LIMITS[room.gameType]?.[e.key];
+        if (!lim) throw new Error('Unbekannte Einstellung');
+        let v = e.value;
+        if (lim === 'bool') v = !!v;
+        else v = Math.max(lim[0], Math.min(lim[1], Math.round(Number(v) || lim[0])));
+        g.opts[e.key] = v;
+        room.options[room.gameType][e.key] = v;
+        room.opAnnounce(by, 'ändert eine Spieleinstellung ⚙️');
+      } else if (e.kind === 'team') {
+        if (!g.moveToTeam || !g.teams) throw new Error('Dieses Spiel hat keine Teams.');
+        const label = g.moveToTeam(e.pid, e.teamId);
+        if (!label) throw new Error('Team nicht gefunden');
+        room.opAnnounce(by, `setzt ${name(e.pid)} in ${label}`);
+      } else if (e.kind === 'game') {
+        g.edit?.(by, e) ?? (() => { throw new Error('Nicht möglich'); })();
+      } else {
+        throw new Error('Unbekannte Bearbeitung');
+      }
       break;
     }
     case 'announce': {

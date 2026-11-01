@@ -110,6 +110,23 @@ export class Game {
   }
 
   /** Operator: Punkte eines Teams/Spielers anpassen */
+  /** Operator: Punktestand direkt setzen (Team) */
+  setScore(unitId, value) {
+    const t = this.team(unitId);
+    if (!t) return null;
+    t.score = value;
+    return t.name;
+  }
+
+  /** Operator: Spieler im laufenden Spiel in ein anderes Team setzen */
+  moveToTeam(pid, teamId) {
+    const target = this.team(teamId);
+    if (!target) return null;
+    for (const t of this.teams) t.members = t.members.filter((m) => m !== pid);
+    target.members.push(pid);
+    return target.name;
+  }
+
   adjustScore(unitId, delta) {
     const t = this.team(unitId);
     if (!t) return null;
@@ -129,5 +146,84 @@ export class Game {
       score: t.score,
       profileIds: t.members.map((pid) => this.room.players.get(pid)?.profileId).filter(Boolean),
     }));
+  }
+}
+
+/** Basis für Spiele, in denen jeder für sich spielt (Punkte pro Person) */
+export class SoloGame extends Game {
+  constructor(room, opts) {
+    super(room, opts, null);
+    this.players = room.allIds();
+    this.scores = Object.fromEntries(this.players.map((p) => [p, 0]));
+  }
+
+  onPlayerJoined(pid) {
+    if (!this.players.includes(pid)) {
+      this.players.push(pid);
+      this.scores[pid] = 0;
+    }
+  }
+
+  onPlayerRemoved(pid) {
+    this.players = this.players.filter((p) => p !== pid);
+  }
+
+  active() {
+    return this.players.filter((p) => this.room.players.has(p));
+  }
+
+  online() {
+    return this.active().filter((p) => this.connected(p));
+  }
+
+  adjustScore(pid, delta) {
+    if (!(pid in this.scores)) return null;
+    this.scores[pid] += delta;
+    return this.name(pid);
+  }
+
+  setScore(pid, value) {
+    if (!(pid in this.scores)) return null;
+    this.scores[pid] = value;
+    return this.name(pid);
+  }
+
+  scoreList() {
+    return this.active().map((pid) => ({ pid, score: this.scores[pid] || 0 })).sort((a, b) => b.score - a.score);
+  }
+
+  soloUnits() {
+    return this.active().map((pid) => ({
+      label: this.name(pid), color: null, score: this.scores[pid] || 0,
+      profileIds: [this.room.players.get(pid).profileId],
+    }));
+  }
+
+  /** Den laufenden Phasen-Timer sofort auslösen (Operator „Weiter“) */
+  fireTimer(...keys) {
+    for (const key of keys) {
+      const t = this.room.timers.get(key);
+      if (t) {
+        this.room.timers.delete(key);
+        t.cb();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /** Allgemeine Operator-Aktionen der Solo-Spiele */
+  baseOp(by, a) {
+    const r = this.room;
+    if (a.type === 'skip') {
+      if (this.fireTimer('phase', 'answer', 'vote', 'draw', 'choose')) r.opAnnounce(by, 'springt weiter ⏭');
+      return true;
+    }
+    if (a.type === 'addTime') {
+      const key = ['answer', 'vote', 'draw', 'choose'].find((k) => r.timers.has(k));
+      if (key) { r.addTime(key, 15000); r.opAnnounce(by, 'gibt 15 Sekunden extra ⏱'); }
+      return true;
+    }
+    return false;
   }
 }

@@ -7,12 +7,22 @@ import { aiEnabled } from './aijudge.js';
 import { QuizDuell } from './games/quizduell.js';
 import { FamilienDuell } from './games/familienduell.js';
 import { Duemmste } from './games/duemmste.js';
+import { Montagsmaler } from './games/montagsmaler.js';
+import { Luegenbaron } from './games/luegenbaron.js';
+import { Spion } from './games/spion.js';
+import { Witzbold } from './games/witzbold.js';
+import { Schaetzen } from './games/schaetzen.js';
 import { catalogStats } from './data/index.js';
 
 export const GAMES = {
   quizduell: { cls: QuizDuell, title: 'Quiz Duell', teams: true },
   familienduell: { cls: FamilienDuell, title: 'Familien-Duell', teams: true },
   duemmste: { cls: Duemmste, title: 'Der Dümmste fliegt', teams: false },
+  montagsmaler: { cls: Montagsmaler, title: 'Montagsmaler', teams: false, min: 2 },
+  luegenbaron: { cls: Luegenbaron, title: 'Lügenbaron', teams: false, min: 2 },
+  spion: { cls: Spion, title: 'Der Spion', teams: false, min: 3 },
+  witzbold: { cls: Witzbold, title: 'Witzbold', teams: false, min: 3 },
+  schaetzen: { cls: Schaetzen, title: 'Schätzmeister', teams: false },
 };
 
 const token = () => crypto.randomBytes(16).toString('hex');
@@ -29,6 +39,11 @@ export class Room {
       quizduell: QuizDuell.defaultOptions(),
       familienduell: FamilienDuell.defaultOptions(),
       duemmste: Duemmste.defaultOptions(),
+      montagsmaler: Montagsmaler.defaultOptions(),
+      luegenbaron: Luegenbaron.defaultOptions(),
+      spion: Spion.defaultOptions(),
+      witzbold: Witzbold.defaultOptions(),
+      schaetzen: Schaetzen.defaultOptions(),
     };
     this.teams = null;
     this.teamCount = null;
@@ -36,6 +51,7 @@ export class Room {
     this.paused = false;
     this.timers = new Map();
     this.results = null;
+    this.tutorial = null; // { game, step } – vom Operator gesteuerte Erklär-Folien
     this.typing = null;
     this.flushQueued = false;
     this.lastActivity = Date.now();
@@ -168,6 +184,18 @@ export class Room {
     return { endsAt: this.paused ? null : t.deadline, duration: t.duration, remaining, paused: this.paused };
   }
 
+  // Operator (Pause): Timer auf eine bestimmte Restzeit setzen
+  setTimerRemaining(key, ms) {
+    const t = this.timers.get(key);
+    if (!t) return false;
+    ms = Math.max(1000, ms);
+    if (this.paused) t.remaining = ms;
+    else t.deadline = Date.now() + ms;
+    t.duration = Math.max(t.duration, ms);
+    this.changed();
+    return true;
+  }
+
   addTime(key, ms) {
     const t = this.timers.get(key);
     if (!t) return;
@@ -214,6 +242,13 @@ export class Room {
     this.announce(`${this.name(by)} ${text}`, 'op', sub, { operator: true, ...extra });
   }
 
+  // Nachricht nur an einen Spieler (alle seine Tabs)
+  emitTo(pid, event, data) {
+    const p = this.players.get(pid);
+    if (!p) return;
+    for (const sid of p.sockets) this.io.sockets.sockets.get(sid)?.emit(event, data);
+  }
+
   // Kurze Effekte (Sound/Konfetti) für alle
   fx(kind, extra = {}) {
     this.io.to(this.code).emit('fx', { kind, ...extra });
@@ -226,6 +261,7 @@ export class Room {
     if (this.players.size < 1) throw new Error('Keine Spieler.');
     const stats = catalogStats();
     if (!stats[this.gameType]) throw new Error('Für dieses Spiel sind keine Fragen geladen (siehe Server-Log).');
+    if (def.min && this.connectedIds().length < def.min) throw new Error(`${def.title} braucht mindestens ${def.min} Spieler.`);
     if (def.teams) {
       if (!this.teams) this.rebuildTeams();
       this.teams = this.teams.filter((t) => t.members.length > 0);
@@ -266,7 +302,8 @@ export class Room {
     this.game = null;
     this.paused = false;
     const winners = sorted.filter((u) => u.rank === 1).map((u) => u.label).join(' & ');
-    this.announce(`🏆 ${winners} gewinnt!`, 'win', `${this.results.title} ist vorbei`);
+    const many = sorted.filter((u) => u.rank === 1).length > 1;
+    this.announce(`🏆 ${winners} ${many ? 'gewinnen' : 'gewinnt'}!`, 'win', `${this.results.title} ist vorbei`);
     this.fx('win');
     this.changed();
   }
@@ -329,6 +366,7 @@ export class Room {
       teamCount: this.teamCount,
       teamStyles: TEAM_STYLES,
       results: this.results,
+      tutorial: this.tutorial,
       game: this.game ? this.game.view(pid, isOp) : null,
       leaderboard: store.leaderboard(),
       ai: aiEnabled(),

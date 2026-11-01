@@ -445,6 +445,18 @@ export class FamilienDuell extends Game {
     this.changed();
   }
 
+  // Operator-Bearbeitung (Pause): Strikes und Topf direkt setzen
+  edit(by, e) {
+    if (e.field === 'strikes') {
+      this.strikes = Math.max(0, Math.min(3, Math.round(Number(e.value) || 0)));
+      this.room.opAnnounce(by, `setzt die Strikes auf ${this.strikes}/3`);
+    } else if (e.field === 'pot') {
+      this.pot = Math.max(0, Math.round(Number(e.value) || 0));
+      this.room.opAnnounce(by, `setzt den Topf auf ${this.pot} Punkte`);
+    } else throw new Error('Nicht möglich');
+    return true;
+  }
+
   view(pid, isOp) {
     const fullReveal = ['roundEnd'].includes(this.phase);
     const board = this.q ? this.q.a.map((ans, i) => {

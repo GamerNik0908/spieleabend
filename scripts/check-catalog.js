@@ -90,6 +90,73 @@ if (type === 'duemmste') {
   console.log(`${data.length} Umfragen`);
 }
 
+const uniq = (x, i) => {
+  const id = x.id || `#${i}`;
+  if (!x.id) err(id, 'fehlende id');
+  if (ids.has(x.id)) err(id, 'doppelte id');
+  ids.add(x.id);
+  return id;
+};
+
+if (type === 'montagsmaler') {
+  const words = new Set();
+  data.forEach((x, i) => {
+    const id = uniq(x, i);
+    if (!x.w || typeof x.w !== 'string') return err(id, 'fehlendes Wort w');
+    const k = normalize(x.w);
+    if (words.has(k)) err(id, `doppeltes Wort "${x.w}"`);
+    words.add(k);
+    if (![1, 2, 3].includes(x.lvl)) err(id, 'lvl muss 1, 2 oder 3 sein');
+    for (const v of [x.w, ...(x.alt || [])]) if (!matchAnswer(v, { a: x.w, alt: x.alt })) err(id, `"${v}" wird nicht erkannt`);
+  });
+  console.log(`${data.length} Begriffe`);
+} else if (type === 'luegenbaron') {
+  data.forEach((x, i) => {
+    const id = uniq(x, i);
+    if (!x.q || (x.q.match(/___/g) || []).length !== 1) err(id, 'q muss genau eine Lücke ___ enthalten');
+    if (!x.a) err(id, 'fehlende Wahrheit a');
+    if (!Array.isArray(x.lies) || x.lies.length < 3) err(id, 'mindestens 3 Lügen in lies');
+    for (const l of x.lies || []) if (matchAnswer(l, { a: x.a, alt: x.alt })) err(id, `Lüge "${l}" wird als Wahrheit erkannt`);
+    for (const v of [x.a, ...(x.alt || [])]) if (!matchAnswer(v, { a: x.a, alt: x.alt })) err(id, `"${v}" wird nicht erkannt`);
+  });
+  console.log(`${data.length} Tatsachen`);
+} else if (type === 'spion') {
+  let n = 0;
+  data.forEach((c, i) => {
+    const id = uniq(c, i);
+    if (!c.cat) err(id, 'fehlende Kategorie cat');
+    if (!Array.isArray(c.words) || c.words.length < 10) err(id, 'mindestens 10 Wörter');
+    const seen = new Set();
+    for (const w of c.words || []) {
+      const k = normalize(w);
+      if (seen.has(k)) err(id, `doppeltes Wort "${w}"`);
+      seen.add(k);
+      n++;
+    }
+  });
+  console.log(`${data.length} Kategorien, ${n} Wörter`);
+} else if (type === 'witzbold') {
+  data.forEach((x, i) => {
+    const id = uniq(x, i);
+    if (!x.q || x.q.length < 8) err(id, 'fehlender/zu kurzer Satzanfang q');
+    const qn = normalize(x.q);
+    if (texts.has(qn)) err(id, 'doppelter Satzanfang');
+    texts.add(qn);
+  });
+  console.log(`${data.length} Satzanfänge`);
+} else if (type === 'schaetzen') {
+  data.forEach((x, i) => {
+    const id = uniq(x, i);
+    if (!x.q) err(id, 'fehlende Frage');
+    if (typeof x.a !== 'number' || !Number.isFinite(x.a)) err(id, 'a muss eine Zahl sein');
+    if (!x.unit) warn.push(`${id}: keine Einheit (unit)`);
+    const qn = normalize(x.q);
+    if (texts.has(qn)) err(id, 'doppelte Frage');
+    texts.add(qn);
+  });
+  console.log(`${data.length} Schätzfragen`);
+}
+
 for (const w of warn) console.log('WARNUNG', w);
 if (errors.length) {
   for (const e of errors) console.log('FEHLER', e);

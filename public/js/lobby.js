@@ -29,7 +29,50 @@ export const GAME_INFO = {
   },
 };
 
-const OPTION_DEFS = {
+Object.assign(GAME_INFO, {
+  montagsmaler: {
+    emoji: '🎨', title: 'Montagsmaler', desc: 'Einer zeichnet live, alle anderen raten um die Wette.',
+    rules: [
+      'Reihum malt jeder einen Begriff (3 zur Auswahl: leicht, mittel, schwer).',
+      'Alle anderen tippen ihre Tipps – je schneller richtig, desto mehr Punkte. Der Zeichner bekommt für jeden Treffer Punkte.',
+      'Mit der Zeit werden Buchstaben als Tipp aufgedeckt. Knapp daneben? Das Spiel sagt es dir.',
+    ],
+  },
+  luegenbaron: {
+    emoji: '🤥', title: 'Lügenbaron', desc: 'Kuriose Wahrheit mit Lücke – erfinde Lügen, finde die Wahrheit.',
+    rules: [
+      'Jede Runde: eine echte, absurde Tatsache mit Lücke. Jeder erfindet eine glaubwürdige Lüge.',
+      'Dann werden alle Lügen und die Wahrheit gemischt – jeder tippt auf die Wahrheit.',
+      'Wahrheit gefunden: +500. Für jeden, der auf deine Lüge reinfällt: +250. Letzte Runde doppelt.',
+    ],
+  },
+  spion: {
+    emoji: '🕵️', title: 'Der Spion', desc: 'Alle kennen das Wort – nur einer nicht. Wer ist der Spion?',
+    rules: [
+      'Alle bekommen dasselbe geheime Wort – außer dem Spion, der nur die Kategorie kennt.',
+      'Reihum gibt jeder einen Hinweis. Nicht zu deutlich (sonst weiß es der Spion), nicht zu vage (sonst wirkst du verdächtig).',
+      'Dann wird abgestimmt. Enttarnter Spion darf noch das Wort raten – trifft er, gewinnt er trotzdem. (ab 3 Spielern)',
+    ],
+  },
+  witzbold: {
+    emoji: '😂', title: 'Witzbold', desc: 'Lustige Satzanfänge – zwei Antworten im Duell, alle stimmen ab.',
+    rules: [
+      'Jeder bekommt zwei Satzanfänge und schreibt die lustigste Antwort.',
+      'Je zwei Antworten treten gegeneinander an, die anderen stimmen ab. Alle Stimmen = WITZBOLD-Bonus!',
+      'Zum Schluss das Finale: alle beantworten denselben Satzanfang, Punkte ×3. (ab 3 Spielern)',
+    ],
+  },
+  schaetzen: {
+    emoji: '🎯', title: 'Schätzmeister', desc: 'Keiner weiß es genau – wer schätzt am nächsten dran?',
+    rules: [
+      'Alle schätzen dieselbe Zahl (Höhen, Jahre, Mengen, Kurioses).',
+      'Am nächsten dran: +500, Zweiter +300, Dritter +200, innerhalb 25 %: +100.',
+      'Volltreffer gibt +300 Bonus. Die letzte Frage zählt doppelt.',
+    ],
+  },
+});
+
+export const OPTION_DEFS = {
   quizduell: [
     ['rounds', 'Runden', 1], ['cols', 'Kategorien', 1], ['rows', 'Felder pro Kategorie', 1],
     ['answerSeconds', 'Antwortzeit (Sek.)', 5], ['buzzSeconds', 'Buzzer-Fenster (Sek.)', 1],
@@ -41,6 +84,17 @@ const OPTION_DEFS = {
     ['stealSeconds', 'Klau-Zeit (Sek.)', 5], ['buzzSeconds', 'Buzzer-Zeit (Sek.)', 1], ['finalSeconds', 'Finale-Zeit (Sek.)', 5],
     ['lastRoundDouble', 'Letzte Runde doppelt', 'bool'],
   ],
+  montagsmaler: [
+    ['rounds', 'Runden (jeder malt so oft)', 1], ['drawSeconds', 'Zeichenzeit (Sek.)', 10],
+    ['choiceSeconds', 'Wahlzeit (Sek.)', 5], ['hints', 'Buchstaben-Tipps', 'bool'],
+  ],
+  luegenbaron: [['rounds', 'Runden', 1], ['writeSeconds', 'Schreibzeit (Sek.)', 10], ['voteSeconds', 'Abstimmzeit (Sek.)', 5]],
+  spion: [
+    ['rounds', 'Runden', 1], ['clueRounds', 'Hinweis-Runden', 1], ['clueSeconds', 'Hinweis-Zeit (Sek.)', 5],
+    ['voteSeconds', 'Diskussion & Abstimmung (Sek.)', 15], ['guessSeconds', 'Spion-Rateversuch (Sek.)', 5],
+  ],
+  witzbold: [['rounds', 'Runden', 1], ['answerSeconds', 'Schreibzeit (Sek.)', 10], ['voteSeconds', 'Abstimmzeit (Sek.)', 5], ['final', 'Finale', 'bool']],
+  schaetzen: [['rounds', 'Fragen', 1], ['answerSeconds', 'Schätzzeit (Sek.)', 5]],
   duemmste: [
     ['lives', 'Leben', 1], ['roundSeconds', 'Rundenzeit (Sek.)', 30], ['answerSeconds', 'Antwortzeit (Sek.)', 1],
     ['voteSeconds', 'Abstimmzeit (Sek.)', 5],
@@ -144,7 +198,8 @@ function GameSetup({ st }) {
   const info = GAME_INFO[st.gameType];
   const opName = st.players.find((p) => p.isOperator)?.name;
   const n = st.players.length;
-  const warn = st.gameType === 'familienduell' && n < 2 ? 'Familien-Duell braucht mindestens 2 Spieler.'
+  const minP = { familienduell: 2, montagsmaler: 2, luegenbaron: 2, spion: 3, witzbold: 3 }[st.gameType];
+  const warn = minP && n < minP ? `${info.title} braucht mindestens ${minP} Spieler.`
     : st.gameType === 'duemmste' && n < 3 ? 'Der Dümmste fliegt macht erst ab 3 Spielern richtig Spaß (zu zweit geht es direkt ins Finale).' : '';
   return html`<div class="col" style="gap:16px">
     <div class="games-pick">
@@ -163,7 +218,10 @@ function GameSetup({ st }) {
     <${Teams} st=${st} />
     ${warn && html`<div class="pill bad" style="align-self:flex-start">${warn}</div>`}
     ${isOp
-      ? html`<button class="btn primary lg go" style="font-size:26px;padding:18px" onClick=${() => op('start')}>▶ ${info.title} starten!</button>`
+      ? html`<div class="row wrap" style="gap:12px">
+          <button class="btn cyan lg" style="flex:1;min-width:220px" onClick=${() => op('tutorial', { game: st.gameType, step: 0 })}>📖 Tutorial für alle zeigen</button>
+          <button class="btn primary lg go" style="flex:2;min-width:260px;font-size:26px;padding:18px" onClick=${() => op('start')}>▶ ${info.title} starten!</button>
+        </div>`
       : html`<div class="card center"><div class="fun" style="font-size:24px">🍿 Gleich geht's los …</div><div class="muted">${opName} startet das Spiel</div></div>`}
   </div>`;
 }

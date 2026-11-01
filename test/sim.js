@@ -5,7 +5,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { io } from 'socket.io-client';
-import { DUEMMSTE, QUIZ_CATEGORIES, FAMILIENDUELL } from '../server/data/index.js';
+import { DUEMMSTE, QUIZ_CATEGORIES, FAMILIENDUELL, SCHAETZEN } from '../server/data/index.js';
+const schaetz = new Map(SCHAETZEN.map((q) => [q.q, q.a]));
+let currentWord = null;
 
 const game = process.argv[2] || 'duemmste';
 const n = Number(process.argv[3] || 4);
@@ -69,6 +71,14 @@ if (game === 'familienduell') {
   await opx('setOption', { key: 'finalQuestions', value: 2 });
   await opx('setOption', { key: 'buzzSeconds', value: 5 });
 }
+const fast = {
+  montagsmaler: { drawSeconds: 30, choiceSeconds: 5 },
+  luegenbaron: { rounds: 3, writeSeconds: 20, voteSeconds: 10 },
+  spion: { rounds: 2, clueRounds: 1, clueSeconds: 10, voteSeconds: 20, guessSeconds: 10 },
+  witzbold: { rounds: 1, answerSeconds: 30, voteSeconds: 10 },
+  schaetzen: { rounds: 4, answerSeconds: 10 },
+}[game] || {};
+for (const [key, value] of Object.entries(fast)) await opx('setOption', { key, value });
 await sleep(200);
 log('Teams:', JSON.stringify(host.st.teams?.map((t) => t.members.length)));
 const r = await opx('start');
@@ -90,6 +100,7 @@ const t0 = Date.now();
 while (Date.now() - t0 < 6 * 60e3) {
   await sleep(250);
   const st = host.st;
+  if (process.env.DEBUG && Date.now() % 5000 < 260) log('Phase:', st.game?.phase, 'paused', st.paused, JSON.stringify(st.game?.timers), JSON.stringify(bots.map((b) => [b.name, b.st?.game?.canClue, b.st?.game?.canVote])));
   if (st.screen === 'results') {
     log('ERGEBNIS:', st.results.units.map((u) => `${u.rank}. ${u.label} (${u.score}, +${u.allTime})`).join(' | '));
     log('All-Time:', st.leaderboard.map((x) => `${x.name}:${x.points}`).join(', '));
@@ -142,8 +153,43 @@ while (Date.now() - t0 < 6 * 60e3) {
       }
     }
   }
+  for (const b of bots) {
+    const g = b.st?.game;
+    if (!g || b.st.paused) continue;
+    const key = (k) => { if (b.done.has(k)) return false; b.done.add(k); return true; };
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    if (g.type === 'montagsmaler') {
+      if (g.choices && key(`c${g.turn}`)) b.emit('act', { type: 'choose', idx: 0 });
+      if (g.isDrawer && g.word) {
+        currentWord = g.word;
+        if (key(`d${g.turnId}`)) b.s.emit('canvas', { t: 'seg', s: 'a1', c: '#ff0000', w: 6, p: [[0.1, 0.1], [0.5, 0.5], [0.9, 0.2]] });
+      }
+      if (g.canGuess && key(`g${g.turnId}-${Math.floor(Date.now() / 3000)}`)) {
+        b.emit('act', { type: 'answer', text: Math.random() < b.skill * 0.6 && currentWord ? currentWord : pick(['Haus', 'Baum', 'Auto', 'Katze']) });
+      }
+    }
+    if (g.type === 'luegenbaron') {
+      if (g.canWrite && !g.myLie && key(`w${g.round}`)) b.emit('act', { type: 'answer', text: `${b.name}s Lüge ${g.round}` }).then((r) => r.error && log(b.name, r.error));
+      if (g.canVote && key(`v${g.round}`)) { const o = g.options.filter((x) => !x.mine); b.emit('act', { type: 'vote', id: pick(o).id }); }
+    }
+    if (g.type === 'spion') {
+      if (g.canClue && key(`c${g.round}-${g.clues.length}`)) b.emit('act', { type: 'answer', text: `hinweis${Math.floor(Math.random() * 99)}` }).then((r) => r.error && log(b.name, r.error));
+      if (g.canVote && key(`v${g.round}`)) b.emit('act', { type: 'vote', target: pick(g.players.filter((p) => p !== b.st.me.id)) });
+      if (g.canGuess && key(`s${g.round}`)) b.emit('act', { type: 'answer', text: pick(g.catWords) });
+    }
+    if (g.type === 'witzbold') {
+      for (const m of g.mine) if (!m.answer && key(`a${g.round}-${m.id}`)) b.emit('act', { type: 'answer', promptId: m.id, text: `${b.name} sagt was Lustiges ${m.id}` });
+      if (g.match && g.phase === 'vote' && !g.match.inPair && g.match.myVote == null && key(`v${g.round}-${g.match.no}`)) b.emit('act', { type: 'vote', side: Math.random() < 0.5 ? 0 : 1 });
+      if (g.phase === 'finalAnswer' && !g.final.myAnswer && key('fa')) b.emit('act', { type: 'answer', text: `Finale von ${b.name}` });
+      if (g.phase === 'finalVote' && g.final.myVote == null && key('fv')) { const idx = g.final.answers.map((_, i) => i).filter((i) => i !== g.final.mineIdx); b.emit('act', { type: 'vote', side: pick(idx) }); }
+    }
+    if (g.type === 'schaetzen' && g.canGuess && g.myGuess == null && key(`e${g.round}`)) {
+      const a = schaetz.get(g.q) || 100;
+      b.emit('act', { type: 'answer', text: String(Math.round(a * (0.5 + Math.random()))) });
+    }
+  }
   // Operator-Korrektur einmal testen
-  if (!overrideOnce && game !== 'familienduell') {
+  if (!overrideOnce && ['quizduell', 'duemmste'].includes(game)) {
     const g = host.st.game;
     const entry = game === 'quizduell' ? g?.log?.find((e) => !e.ok) : g?.feed?.find((e) => !e.ok);
     if (entry) {

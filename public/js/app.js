@@ -6,9 +6,16 @@ import {
 import { Lobby } from './lobby.js';
 import { Results } from './results.js';
 import { OpBar } from './opbar.js';
+import { TutorialOverlay } from './tutorials.js';
+import { EditPanel } from './editor.js';
 import { QuizDuellView } from './games/quizduell.js';
 import { FamilienDuellView } from './games/familienduell.js';
 import { DuemmsteView } from './games/duemmste.js';
+import { MontagsmalerView } from './games/montagsmaler.js';
+import { LuegenbaronView } from './games/luegenbaron.js';
+import { SpionView } from './games/spion.js';
+import { WitzboldView } from './games/witzbold.js';
+import { SchaetzenView } from './games/schaetzen.js';
 
 // ---------- Socket-Verdrahtung ----------
 socket.on('connect', async () => {
@@ -153,11 +160,16 @@ function Toasts() {
 function PauseScreen({ st }) {
   if (!st.paused) return null;
   return html`<div class="pause-screen">
-    <div>
+    ${st.me.isOperator ? html`<div class="pause-op">
+      <div class="row wrap" style="justify-content:space-between;gap:12px;margin-bottom:14px">
+        <div class="big" style="font-size:64px">PAUSE</div>
+        <button class="btn primary lg go" onClick=${() => op('resume')}>▶ Weiter spielen</button>
+      </div>
+      <${EditPanel} st=${st} />
+    </div>` : html`<div>
       <div class="big">PAUSE</div>
       <p class="muted" style="font-size:18px">Der Operator hat das Spiel kurz angehalten.</p>
-      ${st.me.isOperator && html`<button class="btn primary lg" onClick=${() => op('resume')}>▶ Weiter spielen</button>`}
-    </div>
+    </div>`}
   </div>`;
 }
 
@@ -193,7 +205,10 @@ function TopBar({ st }) {
   </div>`;
 }
 
-const GAME_VIEWS = { quizduell: QuizDuellView, familienduell: FamilienDuellView, duemmste: DuemmsteView };
+const GAME_VIEWS = {
+  quizduell: QuizDuellView, familienduell: FamilienDuellView, duemmste: DuemmsteView,
+  montagsmaler: MontagsmalerView, luegenbaron: LuegenbaronView, spion: SpionView, witzbold: WitzboldView, schaetzen: SchaetzenView,
+};
 
 function Room({ st }) {
   const G = st.game && GAME_VIEWS[st.game.type];
@@ -207,6 +222,7 @@ function Room({ st }) {
     </main>
     ${showOpBar && html`<${OpBar} st=${st} />`}
     <${PauseScreen} st=${st} />
+    <${TutorialOverlay} st=${st} />
   </div>`;
 }
 

@@ -176,7 +176,7 @@ function fold(s) {
 }
 
 function maxTypos(len) {
-  if (len <= 3) return 0;
+  if (len <= 4) return 0;
   if (len <= 6) return 1;
   if (len <= 9) return 2;
   if (len <= 14) return 3;
@@ -198,8 +198,10 @@ function similarity(inp, tgt) {
   const d = editDistance(a, b);
   const allowed = maxTypos(b.length);
   if (d <= allowed && (!short || a[0] === b[0])) return 0.95 - d / Math.max(b.length, 1) * 0.5;
-  if (fb.length >= 4 && editDistance(fa, fb) <= maxTypos(fb.length) && (fb.length > 6 || fa[0] === fb[0])) return 0.85;
-  if (b.length >= 5 && a.length >= 4 && Math.abs(a.length - b.length) <= 3) {
+  // Stammform mit Tippfehlern nur bei längeren Wörtern (sonst Koch ≈ Knochen)
+  if (fb.length > 6 && editDistance(fa, fb) <= maxTypos(fb.length)) return 0.85;
+  // Gleicher Klang nur bei langen Wörtern und nahe beieinander (sonst Hund ≈ Handy, Kater ≈ Gitarre)
+  if (b.length >= 8 && Math.abs(a.length - b.length) <= 3 && d <= allowed + 1) {
     const ka = koelner(a), kb = koelner(b);
     if (ka.length >= 3 && ka === kb) return 0.8;
   }

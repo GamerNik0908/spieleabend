@@ -1,24 +1,31 @@
 # 🎲 Spieleabend
 
-Eine Website für euren Online-Spieleabend mit drei Spielen:
+Eine Website für euren Online-Spieleabend mit acht Spielen:
 
 | Spiel | Prinzip |
 |---|---|
 | ⚡ **Quiz Duell** | Jeopardy-Brett mit 6 Kategorien. Teams wählen nacheinander ein Feld, reihum tippt ein Teammitglied die Antwort. Falsch = halbe Punkte Abzug, die anderen Teams dürfen buzzern und abstauben. Runde 2 zählt doppelt. |
 | 📊 **Familien-Duell** | „Wir haben 100 Leute gefragt …“ – Buzzer-Duell, dann rät das Team reihum, nach 3 Fehlern darf das andere Team klauen. Finale: pro Frage eine geheime Antwort pro Team. |
 | 🧠 **Der Dümmste fliegt** | Reihum Schnellfragen, nach Ablauf der Zeit wählen alle den Dümmsten – meiste Stimmen = ein Leben weg. Gleichstand = Stechen, die letzten zwei spielen das Finale. |
+| 🎨 **Montagsmaler** | Einer zeichnet live im Browser, alle anderen raten per Tippen. Je schneller, desto mehr Punkte; Buchstaben-Tipps mit der Zeit. |
+| 🤥 **Lügenbaron** | Wahre, absurde Tatsache mit Lücke – jeder erfindet eine Lüge, dann sucht jeder die Wahrheit. Punkte fürs Finden und fürs Reinlegen. |
+| 🕵️ **Der Spion** | Alle kennen das geheime Wort, nur der Spion nicht. Reihum Hinweise, dann Abstimmung – enttarnter Spion darf das Wort raten. (ab 3) |
+| 😂 **Witzbold** | Je zwei beantworten denselben lustigen Satzanfang, alle anderen stimmen ab. Einstimmig = Witzbold-Bonus. Finale für alle. (ab 3) |
+| 🎯 **Schätzmeister** | Alle schätzen dieselbe Zahl, Auflösung auf dem Zahlenstrahl. Am nächsten dran gewinnt, Volltreffer gibt Bonus. |
 
 **Gesprochen wird nebenbei (Discord, TeamSpeak …)** – die Antworten werden getippt und automatisch geprüft.
 
 ## Was alles drin ist
 
 - **Operator**: Wer den Raum erstellt, ist Operator und spielt trotzdem mit. Er wählt das Spiel, stellt es ein, startet, pausiert, überspringt, gibt Zeit dazu, korrigiert Bewertungen und Punkte, beendet Spiele und kann die Rolle weitergeben. **Jede Operator-Aktion wird bei allen groß eingeblendet.**
+- **Tutorial pro Spiel**: In der Lobby „📖 Tutorial für alle zeigen“ – alle sehen dieselben Erklär-Folien, nur der Operator blättert (auch mit ← →).
+- **Bearbeiten in der Pause**: Drückt der Operator Pause, kann er Punkte direkt setzen, laufende Uhren stellen, Einstellungen fürs restliche Spiel ändern, Leben/Strikes/Zug anpassen, Spieler zwischen Teams verschieben und Bewertungen korrigieren.
 - **Antwort-Erkennung**: Groß/klein egal, Tippfehler werden toleriert („Lufthanse“ → Lufthansa), Umlaute/ß, Füllwörter („ich glaube es ist …“), Zahlwörter („acht“ = 8, „zweitausendsechs“ = 2006), Plural, gleich klingende Schreibweisen (Filipinen/Philippinen). Absicherungs-Antworten wie „11 oder 12“ zählen nicht.
 - **KI-Richter (optional)**: Für Umschreibungen und Synonyme („schnelles Gehen“ ≈ „rennen“) prüft Claude alle Antworten, die die normale Erkennung nicht versteht. Siehe unten.
 - **Teams automatisch** für jede Spielerzahl (z. B. 4 → 2×2, 6 → 2×3, 7 → 3/2/2, 9 → 3×3); neu mischen, „fair mischen“ nach All-Time-Punkten, Spieler per Klick verschieben.
 - **All-Time-Score** pro Person: Sieg +10, Platz 2 +5, Platz 3 +2, Teilnahme +1 (Team-Siege zählen für jedes Teammitglied).
 - **Bilder**: Operator lädt eure KI-Bilder hoch und weist sie den Spielern zu. Ohne Bild werden Initialen gezeigt. Bilder bleiben am Namen gespeichert.
-- **Großer Fragenkatalog**: ~450 Quiz-Duell-Fragen in 24 Kategorien, ~130 Umfragen, ~520 Schnellfragen. Bereits gespielte Fragen kommen an späteren Abenden erst wieder, wenn der Katalog durch ist.
+- **Großer Inhaltskatalog**: ~450 Quiz-Duell-Fragen in 24 Kategorien, 130 Umfragen, ~520 Schnellfragen, 420 Zeichenbegriffe, 140 Lügenbaron-Tatsachen, 504 Spion-Wörter, 260 Witzbold-Satzanfänge, 170 Schätzfragen. Bereits gespielte Fragen kommen an späteren Abenden erst wieder, wenn der Katalog durch ist.
 - Wieder-Verbinden nach Neuladen, Sounds (abschaltbar), Handy-tauglich, Backup/Wiederherstellung.
 
 ---

@@ -31,7 +31,18 @@ export const QUIZ_CATEGORIES = [...(await load('./quizduell-a.js')), ...(await l
 
 export const FAMILIENDUELL = await load('./familienduell.js');
 
+export const MONTAGSMALER = await load('./montagsmaler.js');
+export const LUEGENBARON = await load('./luegenbaron.js');
+export const SPION = (await load('./spion.js')).filter((c) => c.words?.length);
+export const WITZBOLD = await load('./witzbold.js');
+export const SCHAETZEN = await load('./schaetzen.js');
+
 export const catalogStats = () => ({
+  montagsmaler: MONTAGSMALER.length,
+  luegenbaron: LUEGENBARON.length,
+  spion: SPION.reduce((n, c) => n + c.words.length, 0),
+  witzbold: WITZBOLD.length,
+  schaetzen: SCHAETZEN.length,
   duemmste: DUEMMSTE.length,
   quizduell: QUIZ_CATEGORIES.reduce((n, c) => n + c.questions.length, 0),
   quizKategorien: QUIZ_CATEGORIES.length,

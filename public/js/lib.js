@@ -302,3 +302,32 @@ export function teamStyle(color) {
 export function playerMap(state) {
   return Object.fromEntries((state?.players || []).map((p) => [p.id, p]));
 }
+
+/** Punkteleiste für Spiele, in denen jeder für sich spielt */
+export function ScoreStrip({ st, g, mark = {} }) {
+  const pm = playerMap(st);
+  return html`<div class="score-strip">
+    ${g.scores.map((s, i) => pm[s.pid] && html`<div key=${s.pid} class=${`score-chip ${s.pid === st.me.id ? 'me' : ''} ${mark[s.pid] || ''}`}>
+      <span class="rank">${i + 1}</span>
+      <${Avatar} p=${pm[s.pid]} size=${34} />
+      <span class="nm">${pm[s.pid].name}</span>
+      <b>${s.score}</b>
+    </div>`)}
+  </div>`;
+}
+
+/** Kopfzeile mit Spieltitel, Runde und großem Timer */
+export function GameHead({ icon, title, sub, timer, warn = 5 }) {
+  return html`<div class="game-head">
+    <div class="gh-title"><span class="gh-icon">${icon}</span><span class="fun">${title}</span>${sub && html`<span class="pill accent">${sub}</span>`}</div>
+    ${timer && html`<div class="gh-timer"><${Countdown} timer=${timer} warn=${warn} /></div>`}
+  </div>`;
+}
+
+/** Spieler, die schon fertig sind (Häkchen) */
+export function DoneRow({ st, ids, done }) {
+  const pm = playerMap(st);
+  return html`<div class="done-row">${ids.map((pid) => pm[pid] && html`<div key=${pid} class=${`done-chip ${done.includes(pid) ? 'on' : ''}`} title=${pm[pid].name}>
+    <${Avatar} p=${pm[pid]} size=${40} />${done.includes(pid) && html`<span class="tick">✓</span>`}
+  </div>`)}</div>`;
+}

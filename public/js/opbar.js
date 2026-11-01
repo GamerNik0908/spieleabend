@@ -3,10 +3,24 @@ import { html, useState, op, gameOp } from './lib.js';
 import { QuizDuellOps } from './games/quizduell.js';
 import { FamilienDuellOps } from './games/familienduell.js';
 import { DuemmsteOps } from './games/duemmste.js';
+import { MontagsmalerOps } from './games/montagsmaler.js';
 
-const GAME_OPS = { quizduell: QuizDuellOps, familienduell: FamilienDuellOps, duemmste: DuemmsteOps };
+const GAME_OPS = { quizduell: QuizDuellOps, familienduell: FamilienDuellOps, duemmste: DuemmsteOps, montagsmaler: MontagsmalerOps };
 
-function ScoreAdjust({ g }) {
+function SoloScoreAdjust({ st, g }) {
+  const name = (pid) => st.players.find((p) => p.id === pid)?.name;
+  return html`<div class="card tight" style="margin-bottom:14px">
+    <div class="section-title">Punkte anpassen</div>
+    ${g.scores.map((s) => html`<div class="row" style="margin-bottom:6px" key=${s.pid}>
+      <b style="flex:1">${name(s.pid)}</b><span class="lb-pts">${s.score}</span>
+      <button class="btn xs" onClick=${() => op('score', { unitId: s.pid, delta: -100 })}>−100</button>
+      <button class="btn xs" onClick=${() => op('score', { unitId: s.pid, delta: 100 })}>+100</button>
+    </div>`)}
+  </div>`;
+}
+
+function ScoreAdjust({ st, g }) {
+  if (g.scores) return html`<${SoloScoreAdjust} st=${st} g=${g} />`;
   if (!g.teams) return null;
   const adj = (t) => {
     const v = prompt(`Punkte für ${t.name} ändern um (z. B. 100 oder -50):`, '');
@@ -72,7 +86,7 @@ export function OpBar({ st }) {
           <button class="btn sm ghost" onClick=${() => setDrawer(false)}>Schließen</button></div>
         <p class="tiny muted" style="margin-top:0">Jede Korrektur wird bei allen groß eingeblendet.</p>
         ${Ops && html`<${Ops} st=${st} g=${g} />`}
-        <${ScoreAdjust} g=${g} />
+        <${ScoreAdjust} st=${st} g=${g} />
         <${AvatarQuick} st=${st} />
       </div>`}
   `;

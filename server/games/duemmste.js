@@ -357,6 +357,18 @@ export class Duemmste extends Game {
     this.changed();
   }
 
+  // Operator-Bearbeitung (Pause): Leben direkt setzen
+  edit(by, e) {
+    if (e.field !== 'lives' || !(e.pid in this.lives)) throw new Error('Nicht möglich');
+    const v = Math.max(0, Math.min(9, Math.round(Number(e.value) || 0)));
+    const before = this.lives[e.pid];
+    this.lives[e.pid] = v;
+    if (before === 0 && v > 0) this.eliminated = this.eliminated.filter((x) => x.pid !== e.pid);
+    if (before > 0 && v === 0) this.eliminated.push({ pid: e.pid, round: this.round });
+    this.room.opAnnounce(by, `setzt die Leben von ${this.name(e.pid)} auf ${v} ❤️`);
+    return true;
+  }
+
   view(pid) {
     const alive = this.alive();
     const showVotes = this.phase !== 'vote';

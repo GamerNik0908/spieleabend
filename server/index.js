@@ -162,6 +162,17 @@ io.on('connection', (socket) => {
     socket.to(r.code).emit('typing', r.typing);
   });
 
+  // Montagsmaler: Zeichnung live weiterleiten
+  socket.on('canvas', (msg) => {
+    const r = room();
+    if (!r?.game?.canvas || r.paused) return;
+    r.game.canvas(pid(), msg, socket);
+  });
+  socket.on('canvas:get', (_, cb) => {
+    const r = room();
+    cb?.(r?.game?.canvasFull ? r.game.canvasFull() : null);
+  });
+
   socket.on('op', (a, cb) => safe(socket, () => {
     const r = room();
     if (!r) throw new Error('Kein Raum');
