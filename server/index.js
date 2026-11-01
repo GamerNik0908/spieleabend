@@ -8,7 +8,7 @@ import { Room } from './room.js';
 import { handleOp } from './operator.js';
 import * as store from './store.js';
 import { catalogStats } from './data/index.js';
-import { aiEnabled } from './aijudge.js';
+import { aiEnabled, aiProvider } from './aijudge.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, '..');
@@ -73,7 +73,7 @@ app.post('/api/restore', express.json({ limit: '300mb' }), (req, res) => {
   }
 });
 
-app.get('/api/health', (req, res) => res.json({ ok: true, rooms: rooms.size, ai: aiEnabled(), ...catalogStats() }));
+app.get('/api/health', (req, res) => res.json({ ok: true, rooms: rooms.size, ai: aiEnabled() ? aiProvider() : false, ...catalogStats() }));
 
 // ---------- Räume ----------
 const LETTERS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
@@ -208,6 +208,6 @@ server.listen(PORT, () => {
   const s = catalogStats();
   console.log(`\n🎲 Spieleabend läuft auf http://localhost:${PORT}`);
   console.log(`   Fragen: ${s.duemmste} Dümmste · ${s.quizduell} Quiz Duell (${s.quizKategorien} Kategorien) · ${s.familienduell} Familien-Duell`);
-  console.log(`   KI-Richter: ${aiEnabled() ? 'AN' : 'aus (ANTHROPIC_API_KEY nicht gesetzt)'}`);
+  console.log(`   KI-Richter: ${aiEnabled() ? `AN (${aiProvider()})` : 'aus (ANTHROPIC_API_KEY oder GEMINI_API_KEY nicht gesetzt)'}`);
   console.log(`   Daten: ${store.DATA_DIR}\n`);
 });

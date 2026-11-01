@@ -12,7 +12,9 @@ services:
         value: "22"
       - key: DATA_DIR
         value: ./data
-      - key: ANTHROPIC_API_KEY  # optional: KI-Richter für Synonyme
+      - key: GEMINI_API_KEY  # optional: KI-Richter mit Google Gemini (kostenlose Stufe)
+        sync: false
+      - key: ANTHROPIC_API_KEY  # optional: KI-Richter mit Claude
         sync: false
     # Mit bezahltem Plan Daten dauerhaft speichern:
     # disk:

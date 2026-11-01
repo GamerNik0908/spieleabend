@@ -3,7 +3,7 @@
 import crypto from 'node:crypto';
 import * as store from './store.js';
 import { makeTeams, defaultTeamCount, TEAM_STYLES } from './teams.js';
-import { aiEnabled } from './aijudge.js';
+import { aiEnabled, aiProvider } from './aijudge.js';
 import { QuizDuell } from './games/quizduell.js';
 import { FamilienDuell } from './games/familienduell.js';
 import { Duemmste } from './games/duemmste.js';
@@ -371,6 +371,7 @@ export class Room {
       game: this.game ? this.game.view(pid, isOp) : null,
       leaderboard: store.leaderboard(),
       ai: aiEnabled(),
+      aiName: aiProvider(),
     };
     if (isOp) {
       v.images = store.images();

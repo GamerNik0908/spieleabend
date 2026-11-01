@@ -89,20 +89,24 @@ Hinweise:
 
 ## KI-Richter einschalten (optional)
 
-Ohne KI funktionieren Tippfehler, Zahlwörter und alle hinterlegten Varianten. Für echte Synonyme/Umschreibungen:
+Ohne KI funktionieren Tippfehler, Zahlwörter und alle hinterlegten Varianten. Für echte Synonyme und Umschreibungen („schnelles Gehen“ ≈ „rennen“) prüft eine KI alle Antworten, die die normale Erkennung nicht versteht. Zwei Anbieter sind möglich – einer reicht:
 
-1. API-Key unter [console.anthropic.com](https://console.anthropic.com) erstellen.
-2. Vor dem Start setzen (PowerShell):
+### Variante 1: Google Gemini (kostenlose Stufe)
 
-   ```powershell
-   $env:ANTHROPIC_API_KEY="sk-ant-..."; npm start
-   ```
+1. Auf [aistudio.google.com/apikey](https://aistudio.google.com/apikey) mit einem Google-Konto anmelden → **API-Schlüssel erstellen**.
+2. Auf Render: Dienst **spieleabend** → **Environment** → **Add Environment Variable** → Key `GEMINI_API_KEY`, Value = dein Schlüssel → **Save, rebuild and deploy**.
+3. Lokal (PowerShell): `$env:GEMINI_API_KEY="..."; npm start`
 
-   Auf Render: im Dashboard den Dienst **spieleabend** öffnen → links **Environment** → **Add Environment Variable** → Key `ANTHROPIC_API_KEY`, Value = dein Key → **Save, rebuild and deploy**. Nach dem Neustart steht oben in der Seite „🤖 KI-Richter“.
+Standardmodell ist `gemini-3.5-flash-lite` (schnell, kostenlose Stufe). Anderes Modell über `GEMINI_MODEL`, z. B. `gemini-3.8-flash`. In der kostenlosen Stufe gelten Anfrage-Limits; werden sie erreicht, entscheidet für den Moment wieder die normale Erkennung.
 
-Die KI wird nur gefragt, wenn die lokale Erkennung nicht passt, und Ergebnisse werden zwischengespeichert. Standardmodell ist `claude-opus-5-5` mit niedriger Denktiefe; über `AI_MODEL` lässt sich ein anderes Modell wählen (z. B. `claude-haiku-5-5` ist deutlich günstiger). In der Oberfläche steht bei jeder Bewertung, wer entschieden hat: **Auto**, **KI** oder **Operator**.
+### Variante 2: Claude (Anthropic)
 
----
+1. Auf [console.anthropic.com](https://console.anthropic.com) Guthaben aufladen und unter **API Keys** einen Key erstellen.
+2. Auf Render wie oben, aber mit Key `ANTHROPIC_API_KEY`.
+
+Standardmodell ist `claude-opus-5-5` mit niedriger Denktiefe; über `AI_MODEL` lässt sich z. B. `claude-haiku-5-5` (deutlich günstiger) wählen.
+
+Sind beide Keys gesetzt, wird Claude genutzt – mit `AI_PROVIDER=gemini` stattdessen Gemini. Oben in der Seite steht, welche KI aktiv ist („🤖 KI-Richter (Gemini)“). Bei jeder Bewertung steht dabei, wer entschieden hat: **Auto**, **KI** oder **Operator**. Ergebnisse werden zwischengespeichert, die KI wird also pro gleicher Antwort nur einmal gefragt.
 
 ## Einstellungen
 
@@ -110,8 +114,11 @@ Die KI wird nur gefragt, wenn die lokale Erkennung nicht passt, und Ergebnisse w
 |---|---|---|
 | `PORT` | Port des Servers | `3000` |
 | `DATA_DIR` | Ordner für Scores, Bilder, gespielte Fragen | `./data` |
-| `ANTHROPIC_API_KEY` | aktiviert den KI-Richter | – |
-| `AI_MODEL` | Claude-Modell für den KI-Richter | `claude-opus-5-5` |
+| `GEMINI_API_KEY` | KI-Richter mit Google Gemini | – |
+| `GEMINI_MODEL` | Gemini-Modell | `gemini-3.5-flash-lite` |
+| `ANTHROPIC_API_KEY` | KI-Richter mit Claude | – |
+| `AI_MODEL` | Claude-Modell | `claude-opus-5-5` |
+| `AI_PROVIDER` | `gemini` erzwingt Gemini, wenn beide Keys gesetzt sind | – |
 
 ## Eigene Fragen ergänzen
 

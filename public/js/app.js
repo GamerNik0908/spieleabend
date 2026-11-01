@@ -204,7 +204,7 @@ function TopBar({ st }) {
     <div class="logo"><span class="dice"><${AssetImg} src="/assets/logo.png" fallback="🎲" /></span><span class="txt">Spieleabend</span></div>
     <span class="code-chip" title="Einladungslink kopieren" onClick=${copy}>${st.code}</span>
     <span class=${`dot ${connected ? '' : 'off'}`} title=${connected ? 'Verbunden' : 'Getrennt – verbinde neu …'}></span>
-    ${st.ai && html`<span class="pill op small" title="Antworten, die die normale Erkennung nicht versteht, prüft eine KI">🤖 KI-Richter</span>`}
+    ${st.ai && html`<span class="pill op small" title="Antworten, die die normale Erkennung nicht versteht, prüft eine KI">🤖 KI-Richter${st.aiName ? ` (${st.aiName})` : ''}</span>`}
     <div class="spacer"></div>
     <span class="muted small nowrap">${st.me.name}${st.me.isOperator ? ' 👑' : ''}</span>
     <button class="btn icon ghost" title="Ton an/aus" onClick=${() => { sound.toggle(); setMuted(sound.muted); }}>${muted ? '🔇' : '🔊'}</button>

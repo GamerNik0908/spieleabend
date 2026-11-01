@@ -1,6 +1,7 @@
 // Optionaler KI-Richter: Wenn die lokale Erkennung keine Übereinstimmung findet,
-// entscheidet Claude, ob die Antwort sinngemäß richtig ist ("schnelles Gehen" ≈ "rennen").
-// Aktiv nur, wenn ANTHROPIC_API_KEY gesetzt ist. Ohne Key läuft alles lokal weiter.
+// entscheidet eine KI, ob die Antwort sinngemäß richtig ist ("schnelles Gehen" ≈ "rennen").
+// Anbieter: Claude (ANTHROPIC_API_KEY) oder Google Gemini (GEMINI_API_KEY).
+// Sind beide gesetzt, gewinnt Claude – außer AI_PROVIDER=gemini. Ohne Key läuft alles lokal.
 import Anthropic from '@anthropic-ai/sdk';
 import { z } from 'zod';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
@@ -10,12 +11,17 @@ import { normalize } from './matcher.js';
 const MODEL = process.env.AI_MODEL || 'claude-opus-5-5';
 const TIMEOUT_MS = Number(process.env.AI_TIMEOUT_MS || 9000);
 
-let client = null;
-if (process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN) {
-  client = new Anthropic({ timeout: TIMEOUT_MS, maxRetries: 1 });
-}
+const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+const hasClaude = !!(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
+const PROVIDER = process.env.AI_PROVIDER === 'gemini' && GEMINI_KEY ? 'gemini'
+  : hasClaude ? 'claude' : GEMINI_KEY ? 'gemini' : null;
 
-export const aiEnabled = () => !!client;
+let client = null;
+if (PROVIDER === 'claude') client = new Anthropic({ timeout: TIMEOUT_MS, maxRetries: 1 });
+
+export const aiEnabled = () => !!PROVIDER;
+export const aiProvider = () => (PROVIDER === 'claude' ? 'Claude' : PROVIDER === 'gemini' ? 'Gemini' : null);
 
 const Verdict = z.object({
   match: z.number().int().describe('Index der passenden Lösung, oder -1 wenn keine passt'),
@@ -46,7 +52,7 @@ const cache = new Map();
  * mode: 'quiz' | 'survey'. Rückgabe: { match: index|-1, reason } oder null bei Fehler/deaktiviert
  */
 export async function aiJudge({ question, solutions, input, mode = 'quiz' }) {
-  if (!client) return null;
+  if (!PROVIDER) return null;
   const key = `${mode}|${question}|${solutions.join('/')}|${normalize(input)}`;
   if (cache.has(key)) return cache.get(key);
   const list = solutions.map((s, i) => `${i}: ${s}`).join('\n');
@@ -55,6 +61,18 @@ Frage: ${question}
 Gültige Lösungen:
 ${list}
 Antwort des Spielers: """${String(input).slice(0, 200)}"""`;
+  const parsed = PROVIDER === 'gemini' ? await askGemini(content) : await askClaude(content);
+  if (!parsed) return null;
+  const result = {
+    match: Number.isInteger(parsed.match) && parsed.match >= 0 && parsed.match < solutions.length ? parsed.match : -1,
+    reason: parsed.reason || '',
+  };
+  cache.set(key, result);
+  if (cache.size > 2000) cache.delete(cache.keys().next().value);
+  return result;
+}
+
+async function askClaude(content) {
   const base = {
     model: MODEL,
     max_tokens: 4000,
@@ -86,14 +104,52 @@ Antwort des Spielers: """${String(input).slice(0, 200)}"""`;
       logError(err);
     }
   }
-  if (!parsed) return null;
-  const result = {
-    match: Number.isInteger(parsed.match) && parsed.match >= 0 && parsed.match < solutions.length ? parsed.match : -1,
-    reason: parsed.reason || '',
+  return parsed;
+}
+
+// Google Gemini über die REST-API (generateContent) mit JSON-Antwortschema
+async function askGemini(content) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent`;
+  const body = {
+    systemInstruction: { parts: [{ text: SYSTEM }] },
+    contents: [{ role: 'user', parts: [{ text: content }] }],
+    generationConfig: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: 'OBJECT',
+        properties: {
+          match: { type: 'INTEGER', description: 'Index der passenden Lösung, oder -1 wenn keine passt' },
+          reason: { type: 'STRING', description: 'Sehr kurze Begründung auf Deutsch' },
+        },
+        required: ['match', 'reason'],
+      },
+      maxOutputTokens: 400,
+    },
   };
-  cache.set(key, result);
-  if (cache.size > 2000) cache.delete(cache.keys().next().value);
-  return result;
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => '');
+      if (res.status === 400 || res.status === 403) console.error(`[KI] Gemini lehnt ab (${res.status}) – Key oder Modell prüfen: ${text.slice(0, 200)}`);
+      else if (res.status === 429) console.error('[KI] Gemini: Limit erreicht (kostenlose Stufe?)');
+      else console.error(`[KI] Gemini-Fehler ${res.status}: ${text.slice(0, 200)}`);
+      return null;
+    }
+    const data = await res.json();
+    const parts = data?.candidates?.[0]?.content?.parts || [];
+    const text = parts.filter((p) => !p.thought).map((p) => p.text || '').join('').trim();
+    if (!text) return null;
+    const json = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, ''));
+    return { match: Number(json.match), reason: String(json.reason || '') };
+  } catch (err) {
+    console.error('[KI] Gemini nicht erreichbar:', err?.name === 'TimeoutError' ? 'Zeitüberschreitung' : err?.message || err);
+    return null;
+  }
 }
 
 function logError(err) {

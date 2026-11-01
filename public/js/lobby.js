@@ -372,8 +372,8 @@ function DataPanel({ st }) {
     <div class="card">
       <h3>🤖 KI-Richter</h3>
       <p class="small muted" style="margin:0">${st.ai
-        ? 'Aktiv: Antworten, die die normale Erkennung nicht versteht (Synonyme, Umschreibungen), prüft Claude.'
-        : 'Aus. Tippfehler, Zahlwörter und hinterlegte Varianten werden trotzdem erkannt. Für Synonyme wie „schnelles Gehen“ ≈ „rennen“ auf dem Server ANTHROPIC_API_KEY setzen (siehe Anleitung).'}</p>
+        ? `Aktiv (${st.aiName}): Antworten, die die normale Erkennung nicht versteht (Synonyme, Umschreibungen), prüft die KI.`
+        : 'Aus. Tippfehler, Zahlwörter und hinterlegte Varianten werden trotzdem erkannt. Für Synonyme wie „schnelles Gehen“ ≈ „rennen“ auf dem Server GEMINI_API_KEY (kostenlos) oder ANTHROPIC_API_KEY setzen (siehe Anleitung).'}</p>
     </div>
   </div>`;
 }
