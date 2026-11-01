@@ -59,6 +59,7 @@ export class Room {
     this.manualAdvance = true; // Operator klickt „Weiter“ statt automatischem Weiterspringen
     this.revealSeq = true; // Antworten Spieler für Spieler aufdecken (statt alle gleichzeitig)
     this.waiting = null; // { label, cb } – wartet auf den Operator
+    this.reveal = null; // { key, ids, shown, ordered, then } – Antworten nacheinander aufdecken
     this.typing = null;
     this.flushQueued = false;
     this.lastActivity = Date.now();
@@ -184,6 +185,64 @@ export class Room {
   clearAllTimers() {
     this.timers.clear();
     this.waiting = null;
+    this.reveal = null;
+  }
+
+  // ---------- Aufdecken: Spieler für Spieler ----------
+  /**
+   * Startet eine Aufdeckung. ids: Reihenfolge (bei ordered = schlechtester zuerst).
+   * ordered=false: Der Operator klickt die Namen in beliebiger Reihenfolge an.
+   * Weiter/Enter deckt immer den nächsten auf. Danach ruft es then() auf.
+   * Ohne „nacheinander aufdecken“ ist sofort alles sichtbar.
+   */
+  startReveal(key, ids, { ordered = false, autoMs = 1600 } = {}, then = () => {}) {
+    ids = ids.map(String);
+    this.clearTimer('reveal');
+    if (!this.revealSeq || !ids.length) {
+      this.reveal = { key, ids, shown: [...ids], ordered, done: true };
+      then();
+      return this.changed();
+    }
+    this.reveal = { key, ids, shown: [], ordered, done: false, then, autoMs };
+    this.queueReveal();
+    this.changed();
+  }
+
+  queueReveal() {
+    const r = this.reveal;
+    if (!r || r.done) return;
+    const next = () => this.revealOne();
+    if (this.manualAdvance) {
+      const nextId = r.ids.find((id) => !r.shown.includes(id));
+      const name = !r.ordered ? this.players.get(nextId)?.name : null;
+      this.waiting = { label: name ? `${name} aufdecken` : 'Nächsten aufdecken', cb: next, reveal: true };
+    } else {
+      this.setTimer('reveal', r.shown.length ? r.autoMs : 900, next);
+    }
+  }
+
+  revealAll() {
+    while (this.reveal && !this.reveal.done) if (!this.revealOne()) break;
+  }
+
+  /** Nächsten (oder einen bestimmten) aufdecken */
+  revealOne(id = null) {
+    const r = this.reveal;
+    if (!r || r.done) return false;
+    id = id == null ? r.ids.find((x) => !r.shown.includes(x)) : String(id);
+    if (!r.ids.includes(id) || r.shown.includes(id)) return false;
+    if (this.waiting?.reveal) this.waiting = null;
+    this.clearTimer('reveal');
+    r.shown.push(id);
+    this.fx('reveal');
+    if (r.shown.length >= r.ids.length) {
+      r.done = true;
+      const then = r.then;
+      r.then = null;
+      then?.();
+    } else this.queueReveal();
+    this.changed();
+    return true;
   }
 
   /**
@@ -205,6 +264,8 @@ export class Room {
 
   /** Operator: zum nächsten Schritt (wartet gerade etwas, oder läuft die Auflösung noch) */
   advance() {
+    // Läuft eine Aufdeckung, deckt „Weiter“ zuerst den Nächsten auf
+    if (this.reveal && !this.reveal.done) return this.revealOne();
     if (this.waiting) {
       const w = this.waiting;
       this.waiting = null;
@@ -416,6 +477,7 @@ export class Room {
       results: this.results,
       tutorial: this.tutorial,
       waiting: this.waiting ? { label: this.waiting.label } : null,
+      reveal: this.reveal ? { key: this.reveal.key, shown: this.reveal.shown, ordered: this.reveal.ordered, done: this.reveal.done, total: this.reveal.ids.length } : null,
       nextLabel: this.timers.has('phase') ? this.waitLabel || null : null,
       manualAdvance: this.manualAdvance,
       revealSeq: this.revealSeq,

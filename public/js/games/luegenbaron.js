@@ -1,7 +1,6 @@
 // Ansicht „Lügenbaron“: Lüge schreiben, Wahrheit suchen, dramatische Auflösung.
-import { html, act, gameOp, revealPrefs, useLocalStagger, useTick, remaining, Avatar, TimerBar, AnswerInput, ScoreStrip, GameHead, DoneRow, playerMap } from '../lib.js';
+import { html, act, gameOp, revealPrefs, useLocalStagger, revealState, RevealHint, Avatar, TimerBar, AnswerInput, ScoreStrip, GameHead, DoneRow, playerMap } from '../lib.js';
 
-const STEP = 2600;
 
 function Fact({ q, fill, truth }) {
   const [a, b] = q.split('___');
@@ -9,17 +8,16 @@ function Fact({ q, fill, truth }) {
 }
 
 function Reveal({ st, g, pm }) {
-  useTick(true, 200);
-  const t = g.timers.phase;
-  const elapsed = t && revealPrefs.sequential ? t.duration - remaining(t) : 1e9;
+  // Weiter (Operator) deckt die nächste Antwort auf; nach der letzten kommt die Übersicht
+  const rv = revealState(st, `lb-${g.round}`);
+  const shown = g.revealOrder.filter((id) => rv.isShown(id));
   const n = g.revealOrder.length;
-  const step = Math.floor(elapsed / STEP);
-  const done = step >= n;
-  const shown = g.revealOrder.slice(0, Math.min(n, step + 1));
-  const cur = g.options.find((o) => o.id === g.revealOrder[Math.min(step, n - 1)]);
+  const done = !rv.running && shown.length >= n;
+  const cur = g.options.find((o) => o.id === shown[shown.length - 1]);
   const names = (ids) => ids.map((p) => pm[p]?.name).join(', ');
   return html`<div class="col" style="gap:16px">
-    ${!done && cur && html`<div class=${`lb-reveal card center ${cur.truth ? 'truth' : 'lie'}`} key=${cur.id}>
+    <${RevealHint} st=${st} rv=${rv} waitText="Was ist gelogen, was ist wahr? …" />
+    ${cur && html`<div class=${`lb-reveal card center ${cur.truth ? 'truth' : 'lie'}`} key=${cur.id}>
       <div class="fun lb-opt-text">${cur.text}</div>
       ${cur.truth
         ? html`<div class="lb-verdict truth">✅ DIE WAHRHEIT!</div>

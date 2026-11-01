@@ -1,6 +1,6 @@
 // Ansicht „Der Dümmste fliegt“: Spielerkacheln mit Leben, Schnellfragen, Abstimmung, Stechen.
 import {
-  html, act, gameOp, useStagger, Avatar, Countdown, TimerBar, TypingView, AnswerInput, Judging, ByTag, Hearts, playerMap,
+  html, act, gameOp, revealState, RevealHint, Avatar, Countdown, TimerBar, TypingView, AnswerInput, Judging, ByTag, Hearts, playerMap,
 } from '../lib.js';
 
 function Tile({ pid, st, g, pm }) {
@@ -102,10 +102,10 @@ export function DuemmsteView({ st, g: raw }) {
   const vr = raw.voteResult;
   const entries = vr ? Object.entries(vr.votes) : [];
   const reading = raw.phase === 'voteReveal' && !raw.lastLoss;
-  const shownVotes = useStagger(reading ? raw.timers.phase : null, entries.length, 700, 900);
+  const rv = revealState(st, 'dm-vote');
   let g = raw;
-  if (vr && reading && shownVotes < entries.length) {
-    const part = entries.slice(0, shownVotes);
+  if (vr && reading && rv.running) {
+    const part = entries.filter(([voter]) => rv.isShown(voter));
     const counts = {};
     for (const [, to] of part) counts[to] = (counts[to] || 0) + 1;
     g = { ...raw, voteResult: { ...vr, votes: Object.fromEntries(part), counts, partial: true } };
@@ -121,6 +121,7 @@ export function DuemmsteView({ st, g: raw }) {
     </div>
     ${g.roundOver && ['questions', 'reveal'].includes(g.phase) && html`<div class="banner">⏰ Zeit ist um – nach dieser Frage wird abgestimmt!</div>`}
     <${Center} st=${st} g=${g} pm=${pm} />
+    ${reading && html`<${RevealHint} st=${st} rv=${rv} waitText="Die Stimmen werden vorgelesen …" />`}
     <div class="dm-grid">${order.map((pid) => html`<${Tile} key=${pid} pid=${pid} st=${st} g=${g} pm=${pm} />`)}</div>
     ${g.feed.length > 0 && html`<div class="card tight">
       <div class="section-title">Diese Runde</div>

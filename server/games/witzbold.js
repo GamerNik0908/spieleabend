@@ -193,8 +193,11 @@ export class Witzbold extends SoloGame {
     });
     this.phase = 'finalReveal';
     this.room.fx('win');
-    // Antworten von wenigen zu vielen Stimmen aufdecken
-    this.room.step(1000 + 2200 * f.order.length + 3000, () => this.finish(), 'Zum Ergebnis');
+    // Antworten von wenigen zu vielen Stimmen aufdecken – Weiter deckt die nächste auf
+    const ids = f.order.map((_, i) => i).sort((a, b) => f.counts[a] - f.counts[b]);
+    this.room.startReveal('wb-final', ids, { ordered: true, autoMs: 2200 }, () => {
+      this.room.step(3000, () => this.finish(), 'Zum Ergebnis');
+    });
     this.changed();
   }
 

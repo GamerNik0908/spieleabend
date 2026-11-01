@@ -1,5 +1,5 @@
 // Ansicht „Schätzmeister“: Zahl schätzen, Auflösung auf dem Zahlenstrahl.
-import { html, act, gameOp, Avatar, TimerBar, AnswerInput, ScoreStrip, GameHead, DoneRow, playerMap, useStagger } from '../lib.js';
+import { html, act, gameOp, Avatar, TimerBar, AnswerInput, ScoreStrip, GameHead, DoneRow, playerMap, revealState, RevealHint } from '../lib.js';
 
 const fmt = (n) => (Math.abs(n) >= 1e4 || !Number.isInteger(n) ? n.toLocaleString('de-DE', { maximumFractionDigits: 2 }) : String(n));
 
@@ -24,9 +24,9 @@ export function SchaetzenView({ st, g }) {
   const r = g.result;
   // Vom schlechtesten zum besten aufdecken
   const worstFirst = r ? [...r.list].reverse() : [];
-  const shown = useStagger(g.phase === 'reveal' ? g.timers.phase : null, worstFirst.length, 1400, 1800);
-  const visible = worstFirst.slice(0, shown);
-  const hold = Object.fromEntries(worstFirst.slice(shown).map((e) => [e.pid, e.pts]));
+  const rv = revealState(st, `es-${g.round}`);
+  const visible = worstFirst.filter((e) => rv.isShown(e.pid));
+  const hold = Object.fromEntries(worstFirst.filter((e) => !rv.isShown(e.pid)).map((e) => [e.pid, e.pts]));
   return html`<div class="stage">
     <${GameHead} icon="🎯" title="Schätzmeister" sub=${g.round ? `Frage ${g.round}/${g.rounds}${g.mult > 1 ? ' · ×2' : ''}` : null} timer=${g.phase === 'guess' ? g.timers.answer : null} warn=${5} />
     <${ScoreStrip} st=${st} g=${g} hold=${hold} />
@@ -42,7 +42,7 @@ export function SchaetzenView({ st, g }) {
       <div class="center"><span class="muted">Richtig ist:</span> <span class="big-answer" style="display:inline-block">${fmt(r.a)} ${r.unit || ''}</span></div>
       ${r.info && html`<p class="center muted" style="margin:6px 0 0">💡 ${r.info}</p>`}
       <${NumberLine} r=${r} pm=${pm} list=${visible} />
-      ${shown < worstFirst.length && html`<div class="banner" style="margin-bottom:8px">Wer lag am nächsten? …</div>`}
+      <${RevealHint} st=${st} rv=${rv} waitText="Wer lag am nächsten? …" />
       <div class="col" style="gap:8px">${[...visible].reverse().map((e) => html`<div key=${e.pid} class=${`result-line ${e.rank <= 3 ? 'ok' : 'bad'}`}>
         <span class="lb-rank">${e.rank}.</span><${Avatar} p=${pm[e.pid]} size=${28} /><b>${pm[e.pid]?.name}</b>
         <span class="muted">${fmt(e.value)} <span class="tiny">(${e.diff === 0 ? 'exakt!' : `${fmt(Math.round(e.diff * 100) / 100)} daneben`})</span></span>

@@ -188,11 +188,19 @@ export function handleOp(room, by, a) {
     case 'game': {
       if (!room.game) throw new Error('Kein Spiel aktiv.');
       // „Weiter“ während einer Auflösung / Wartepause: direkt zum nächsten Schritt
-      if (a.action?.type === 'skip' && (room.waiting || room.timers.has('phase')) && !['answer', 'vote', 'buzz', 'pick', 'draw', 'choose'].some((k) => room.timers.has(k))) {
+      if (a.action?.type === 'skip' && (room.waiting || room.timers.has('phase') || (room.reveal && !room.reveal.done)) && !['answer', 'vote', 'buzz', 'pick', 'draw', 'choose'].some((k) => room.timers.has(k))) {
         room.advance();
         break;
       }
       room.game.op(by, a.action || {});
+      break;
+    }
+    case 'reveal': {
+      // Operator klickt einen Namen an → dessen Antwort wird aufgedeckt
+      const r = room.reveal;
+      if (!r || r.done) throw new Error('Gerade wird nichts aufgedeckt.');
+      if (r.ordered && a.id != null && r.ids.find((x) => !r.shown.includes(x)) !== String(a.id)) throw new Error('Hier wird der Reihe nach aufgedeckt – drück auf Weiter.');
+      room.revealOne(a.id);
       break;
     }
     case 'advance':
@@ -207,6 +215,7 @@ export function handleOp(room, by, a) {
       if ('revealSeq' in a) {
         room.revealSeq = !!a.revealSeq;
         room.opAnnounce(by, room.revealSeq ? 'deckt Antworten jetzt Spieler für Spieler auf 🎭' : 'deckt Antworten jetzt alle gleichzeitig auf');
+        if (!room.revealSeq) room.revealAll();
       }
       if ('aiOn' in a) {
         room.aiOn = !!a.aiOn;

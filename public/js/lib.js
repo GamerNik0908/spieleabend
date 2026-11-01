@@ -380,3 +380,26 @@ export function useLocalStagger(key, count, stepMs = 1200, delayMs = 800) {
   useTick(!done, 150);
   return Math.max(0, Math.min(count, Math.floor((Date.now() - start - delayMs) / stepMs) + 1));
 }
+
+/**
+ * Aufdeckung, die der Server steuert (Operator klickt Namen an oder drückt Weiter).
+ * Ist für `key` keine Aufdeckung aktiv, gilt alles als sichtbar.
+ */
+export function revealState(st, key) {
+  const r = st.reveal;
+  const active = !!r && r.key === key;
+  return {
+    running: active && !r.done,
+    isShown: (id) => !active || r.shown.includes(String(id)),
+    count: active ? r.shown.length : Infinity,
+    canClick: active && !r.done && !r.ordered && !!st.me?.isOperator,
+    click: (id) => op('reveal', { id }),
+  };
+}
+
+/** Hinweis unter der Aufdeckung: Operator weiß, was er tun kann */
+export function RevealHint({ st, rv, waitText = 'Gleich wird aufgedeckt …' }) {
+  if (!rv.running) return null;
+  if (!st.me.isOperator) return html`<div class="banner">${waitText}</div>`;
+  return html`<div class="banner reveal-hint">${rv.canClick ? html`👆 Klick auf einen Namen, um seine Antwort aufzudecken – oder <b>Weiter</b> (Enter)` : html`▶ <b>Weiter</b> (Enter) deckt den Nächsten auf`}</div>`;
+}

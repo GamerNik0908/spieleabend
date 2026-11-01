@@ -308,7 +308,11 @@ export class FamilienDuell extends Game {
     for (const t of this.teams) t.score += row.answers[t.id].p;
     this.phase = 'finalReveal';
     this.room.fx('reveal');
-    this.room.step(6000, () => this.finalNext(), this.final.index + 1 >= this.opts.finalQuestions ? 'Zum Ergebnis' : 'Nächste Finalfrage');
+    // Beide Antworten: Operator klickt die Namen an (oder Weiter)
+    const ids = this.teams.map((t) => row.answers[t.id]?.pid).filter(Boolean);
+    this.room.startReveal(`fd-final-${this.final.index}`, ids, { ordered: false, autoMs: 2000 }, () => {
+      this.room.step(4000, () => this.finalNext(), this.final.index + 1 >= this.opts.finalQuestions ? 'Zum Ergebnis' : 'Nächste Finalfrage');
+    });
     this.changed();
   }
 
@@ -476,7 +480,8 @@ export class FamilienDuell extends Game {
           answers: Object.fromEntries(this.teams.map((t) => {
             const a = row.answers[t.id];
             if (!a) return [t.id, null];
-            if (!done) return [t.id, { submitted: true, mine: a.pid === pid ? a.input : undefined }];
+            const hidden = ri === f.index && this.room.reveal?.key === `fd-final-${ri}` && !this.room.reveal.shown.includes(String(a.pid));
+            if (!done || hidden) return [t.id, { submitted: true, hidden, mine: a.pid === pid ? a.input : undefined }];
             return [t.id, { submitted: true, input: a.input, t: a.t, p: a.p, by: a.by, index: a.index }];
           })),
           board: done ? row.q.a.map((x) => ({ t: x.t, p: x.p })) : null,

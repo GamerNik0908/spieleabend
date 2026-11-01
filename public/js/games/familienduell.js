@@ -1,6 +1,6 @@
 // Ansicht „Familien-Duell“: Teamseiten, Antworttafel, Buzzer, Strikes, Finale.
 import {
-  html, useState, useEffect, act, gameOp, Avatar, Countdown, TimerBar, TypingView, AnswerInput, Judging, ByTag, teamStyle, playerMap,
+  html, useState, useEffect, act, gameOp, Avatar, Countdown, TimerBar, TypingView, AnswerInput, Judging, ByTag, teamStyle, playerMap, revealState, RevealHint,
 } from '../lib.js';
 
 function TeamSide({ t, g, pm }) {
@@ -116,11 +116,14 @@ function Final({ st, g, pm }) {
   const row = f.rows[f.index];
   const myTurn = g.canAnswer && g.phase === 'final';
   const teamA = g.teams[0], teamB = g.teams[1];
+  const rv = revealState(st, `fd-final-${f.index}`);
   const cell = (r, t, ri) => {
     const a = r.answers[t.id];
     const isCur = ri === f.index && ['final', 'finalJudging'].includes(g.phase);
     let content;
     if (!a) content = html`<span class="faint small">${pm[r.players[t.id]]?.name} überlegt …</span>`;
+    else if (a.hidden && rv.canClick) content = html`<button class="btn xs primary" onClick=${() => rv.click(r.players[t.id])}>👆 aufdecken</button>`;
+    else if (a.hidden) content = html`<span class="small faint">???</span>`;
     else if (a.input === undefined) content = html`<span class="small">${a.mine ? `„${a.mine}“ ✓` : '✓ abgegeben'}</span>`;
     else content = html`<span class="small muted">„${a.input || '–'}“</span><b>${a.t ? `${a.t} · ${a.p}` : '0'}</b>
       ${st.me.isOperator && r.board && html`<select class="input fd-fix" value=${a.index ?? -1} title="Operator: Wertung ändern"
@@ -139,6 +142,7 @@ function Final({ st, g, pm }) {
       ? html`<${AnswerInput} key=${`final-${f.index}`} live=${false} placeholder="Deine geheime Antwort …" onSubmit=${(text) => act({ type: 'answer', text })} />`
       : html`<div class="banner">${Object.values(row?.players || {}).includes(me) ? 'Abgegeben – warte auf das andere Team …' : `${g.teams.map((t) => pm[row?.players[t.id]]?.name).join(' und ')} antworten geheim …`}</div>`)}
     ${g.phase === 'finalJudging' && html`<div class="center"><${Judging} /></div>`}
+    ${g.phase === 'finalReveal' && html`<${RevealHint} st=${st} rv=${rv} waitText="Was haben die beiden gesagt? …" />`}
     <div class="col" style="gap:8px">
       ${f.rows.map((r, ri) => html`<div class="fd-final" key=${ri}>
         ${cell(r, teamA, ri)}<div class="fq">${r.q}</div>${cell(r, teamB, ri)}

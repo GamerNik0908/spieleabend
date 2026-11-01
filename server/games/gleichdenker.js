@@ -137,8 +137,13 @@ export class Gleichdenker extends Game {
     this.phase = 'reveal';
     const best = Math.max(...Object.values(this.result).map((r) => r.pts));
     this.room.fx(best >= 3 ? 'win' : best > 0 ? 'win-round' : 'wrong');
-    // Teams nacheinander aufdecken – das beste zuletzt
-    this.room.step(this.room.revealSeq ? 1000 + this.teams.reduce((n, t) => n + (this.result[t.id]?.size || 0) * 1500 + 1500, 0) + 2500 : 3000, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Frage');
+    // Alle Namen sichtbar, der Operator deckt per Klick (oder Weiter) Spieler für Spieler auf –
+    // vorgeschlagene Reihenfolge: schwächstes Team zuerst
+    const order = [...this.teams].filter((t) => this.result[t.id]).sort((a, b) => this.result[a.id].pts - this.result[b.id].pts);
+    const ids = order.flatMap((t) => t.members.filter((p) => this.result[t.id].groups.some((g) => g.pids.includes(p))));
+    this.room.startReveal(`gd-${this.round}`, ids, { ordered: false }, () => {
+      this.room.step(2500, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Frage');
+    });
     this.changed();
   }
 

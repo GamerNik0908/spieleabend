@@ -1,6 +1,6 @@
 // Ansicht „Gleichdenker“: geheim antworten, dann Spieler für Spieler aufdecken (schwächstes Team
 // zuerst). Der Operator legt per Buchstaben fest, welche Antworten als gleich zählen.
-import { html, useState, act, gameOp, ByTag, Judging, Avatar, TimerBar, AnswerInput, GameHead, DoneRow, teamStyle, playerMap, useStagger } from '../lib.js';
+import { html, useState, act, gameOp, ByTag, Judging, Avatar, TimerBar, AnswerInput, GameHead, DoneRow, teamStyle, playerMap, revealState, RevealHint } from '../lib.js';
 
 const LETTERS = 'ABCDEFGHIJKL';
 
@@ -47,7 +47,7 @@ function GroupEditor({ t, r, pm, onClose }) {
   </div>`;
 }
 
-function TeamResult({ st, t, r, pm, shownPlayers, complete }) {
+function TeamResult({ st, t, r, pm, rv, complete }) {
   const [editing, setEditing] = useState(false);
   const isOp = st.me.isOperator;
   const label = r.pts >= 3 ? 'Alle gleich!' : r.best >= 2 ? `${r.best} gleich` : 'Alle verschieden';
@@ -60,10 +60,14 @@ function TeamResult({ st, t, r, pm, shownPlayers, complete }) {
       ${grp.pids.map((pid, i) => html`<div key=${pid} class="gd-answer"><${Avatar} p=${pm[pid]} size=${30} /><span class="gd-name">${pm[pid]?.name}</span><b>${grp.texts[i] || '—'}</b></div>`)}
     </div>`)}</div>`;
   } else {
-    // Spieler für Spieler aufdecken, Gruppen erst wenn das Team komplett ist
-    body = html`<div class="gd-groups"><div class="gd-group">${answersOf(t, r).map(({ pid, text }, i) => html`<div key=${pid} class=${`gd-answer ${i < shownPlayers ? 'gd-in' : 'gd-hidden'}`}>
-      <${Avatar} p=${pm[pid]} size=${30} /><span class="gd-name">${pm[pid]?.name}</span><b>${i < shownPlayers ? text || '—' : '???'}</b>
-    </div>`)}</div></div>`;
+    // Alle Namen sichtbar, Antworten werden einzeln aufgedeckt; Gruppen erst wenn das Team komplett ist
+    body = html`<div class="gd-groups"><div class="gd-group">${answersOf(t, r).map(({ pid, text }) => {
+      const open = rv.isShown(pid);
+      const click = !open && rv.canClick;
+      return html`<button key=${pid} disabled=${!click} onClick=${() => click && rv.click(pid)} class=${`gd-answer ${open ? 'gd-in' : 'gd-hidden'} ${click ? 'gd-click' : ''}`}>
+        <${Avatar} p=${pm[pid]} size=${30} /><span class="gd-name">${pm[pid]?.name}</span><b>${open ? text || '—' : click ? '👆 aufdecken' : '???'}</b>
+      </button>`;
+    })}</div></div>`;
   }
   return html`<div class=${`gd-team ${complete && r.pts >= 3 ? 'perfect' : ''}`} style=${teamStyle(t.color)}>
     <div class="gd-team-head"><span class="gd-team-name">${t.name}</span>${complete ? html`<span class="gd-pts">+${r.pts}</span>` : html`<span class="muted small">…</span>`}</div>
@@ -76,14 +80,11 @@ function TeamResult({ st, t, r, pm, shownPlayers, complete }) {
 export function GleichdenkerView({ st, g }) {
   const pm = playerMap(st);
   const myTeam = g.teams.find((t) => t.members.includes(st.me.id));
-  // Teams vom schwächsten zum besten, darin Spieler für Spieler, danach das Team-Ergebnis
+  // Teams vom schwächsten zum besten; der Operator deckt Spieler für Spieler auf
   const order = g.result ? [...g.teams].filter((t) => g.result[t.id]).sort((a, b) => g.result[a.id].pts - g.result[b.id].pts) : [];
-  const steps = order.flatMap((t) => [...Array(answersOf(t, g.result[t.id]).length).fill(t.id), `${t.id}#done`]);
-  const shown = useStagger(g.phase === 'reveal' ? g.timers.phase : null, steps.length, 1500, 1000);
-  const done = steps.slice(0, shown);
-  const progress = (t) => ({ players: done.filter((x) => x === t.id).length, complete: done.includes(`${t.id}#done`) });
-  const hold = Object.fromEntries(order.filter((t) => !progress(t).complete).map((t) => [t.id, g.result[t.id].pts]));
-  const visible = order.filter((t) => { const p = progress(t); return p.players > 0 || p.complete; });
+  const rv = revealState(st, `gd-${g.round}`);
+  const complete = (t) => answersOf(t, g.result[t.id]).every(({ pid }) => rv.isShown(pid));
+  const hold = Object.fromEntries(order.filter((t) => !complete(t)).map((t) => [t.id, g.result[t.id].pts]));
   return html`<div class="stage">
     <${GameHead} icon="🧩" title="Gleichdenker" sub=${g.round ? `Frage ${g.round}/${g.rounds}` : null} timer=${g.phase === 'answer' ? g.timers.answer : null} warn=${5} />
     <${TeamScores} g=${g} pm=${pm} hold=${hold} />
@@ -97,11 +98,8 @@ export function GleichdenkerView({ st, g }) {
     </div>
     <${DoneRow} st=${st} ids=${g.teams.flatMap((t) => t.members)} done=${g.answered} />`}
     ${g.phase === 'judging' && html`<div class="card center"><${Judging} /><div class="small muted" style="margin-top:8px">Die KI vergleicht eure Antworten nach Bedeutung …</div></div>`}
-    ${g.phase === 'reveal' && g.result && html`<div class="gd-results">${visible.map((t) => {
-      const p = progress(t);
-      return html`<${TeamResult} key=${t.id} st=${st} t=${t} r=${g.result[t.id]} pm=${pm} shownPlayers=${p.players} complete=${p.complete} />`;
-    })}</div>
-      ${shown < steps.length && html`<div class="banner">Was haben die anderen geschrieben? …</div>`}
-      ${st.me.isOperator && shown >= steps.length && html`<p class="tiny muted center">Operator: Mit „✏️ Ändern“ legst du selbst fest, welche Antworten als gleich zählen – auch „ist doch falsch“.</p>`}`}
+    ${g.phase === 'reveal' && g.result && html`<${RevealHint} st=${st} rv=${rv} waitText="Was haben die anderen geschrieben? …" />
+      <div class="gd-results">${order.map((t) => html`<${TeamResult} key=${t.id} st=${st} t=${t} r=${g.result[t.id]} pm=${pm} rv=${rv} complete=${complete(t)} />`)}</div>
+      ${st.me.isOperator && !rv.running && html`<p class="tiny muted center">Operator: Mit „✏️ Ändern“ legst du selbst fest, welche Antworten als gleich zählen – auch „ist doch falsch“.</p>`}`}
   </div>`;
 }

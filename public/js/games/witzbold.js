@@ -1,5 +1,5 @@
 // Ansicht „Witzbold“: Satzanfänge beantworten, Duelle abstimmen, Finale.
-import { html, act, useLocalStagger, revealPrefs, Avatar, TimerBar, AnswerInput, ScoreStrip, GameHead, DoneRow, playerMap, useStagger } from '../lib.js';
+import { html, act, useLocalStagger, revealPrefs, Avatar, TimerBar, AnswerInput, ScoreStrip, GameHead, DoneRow, playerMap, revealState, RevealHint } from '../lib.js';
 
 function Answering({ st, g }) {
   const open = g.mine.find((m) => !m.answer);
@@ -54,16 +54,16 @@ function Final({ st, g, pm }) {
   const order = f.answers.map((a, i) => i);
   // Auflösung: von wenigen zu vielen Stimmen, die beste Antwort zuletzt (oben)
   if (reveal) order.sort((a, b) => f.counts[a] - f.counts[b]);
-  const shown = useStagger(reveal ? g.timers.phase : null, order.length, 2200, 1000);
+  const rv = revealState(st, 'wb-final');
   // Beim Abstimmen tauchen die Antworten eine nach der anderen auf
   const intro = useLocalStagger(`wbf-${f.text}`, order.length, 1300, 400);
   const nIntro = revealPrefs.sequential ? intro : order.length;
-  const list = reveal ? order.slice(0, shown).reverse() : order.slice(0, nIntro);
+  const list = reveal ? order.filter((i) => rv.isShown(i)).reverse() : order.slice(0, nIntro);
   return html`<div class="col" style="gap:14px">
     <div class="wb-prompt fun">${f.text}</div>
     ${!reveal && nIntro < order.length && html`<div class="banner">Die Antworten … 🥁</div>`}
     ${!reveal && nIntro >= order.length && html`<div class="banner">${f.myVote != null ? 'Abgestimmt!' : 'Stimm für die lustigste Antwort (nicht deine eigene)!'}</div>`}
-    ${reveal && shown < order.length && html`<div class="banner">Und die meisten Stimmen bekommt … 🥁</div>`}
+    ${reveal && html`<${RevealHint} st=${st} rv=${rv} waitText="Und die meisten Stimmen bekommt … 🥁" />`}
     <div class="wb-final">${list.map((i) => html`<button key=${i} class=${`wb-answer s${i % 2} ${f.myVote === i ? 'picked' : ''}`}
       disabled=${reveal || f.myVote != null || i === f.mineIdx} onClick=${() => act({ type: 'vote', side: i })}>
       <div class="fun wb-text">${f.answers[i]}</div>

@@ -114,8 +114,10 @@ export class Luegenbaron extends SoloGame {
       ...this.options.filter((o) => !o.truth && voted(o) > 0).sort((a, b) => voted(a) - voted(b)),
       ...this.options.filter((o) => o.truth),
     ].map((o) => o.id);
-    const ms = 2600 * this.revealOrder.length + 5500;
-    this.room.step(ms, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Runde');
+    // Weiter deckt die nächste Antwort auf, danach kommt die Punkteübersicht
+    this.room.startReveal(`lb-${this.round}`, this.revealOrder, { ordered: true, autoMs: 2600 }, () => {
+      this.room.step(5000, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Runde');
+    });
     this.changed();
   }
 

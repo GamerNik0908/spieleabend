@@ -230,3 +230,9 @@ body[data-game="gleichdenker"] { --accent: #3ad08a; }
 /* Korrektur-Knöpfe direkt im Spiel (nur Operator) */
 .op-fix { margin-top: 14px; padding-top: 12px; border-top: 1px dashed rgba(245,196,81,.35); display: flex; flex-direction: column; gap: 8px; align-items: center; }
 .fd-fix { width: auto; padding: 3px 6px; font-size: 12px; margin-top: 4px; }
+.gd-answer.gd-click { opacity: 1; cursor: pointer; border-color: rgba(245,196,81,.6); }
+.gd-answer.gd-click:hover { background: rgba(245,196,81,.12); }
+.gd-answer.gd-click b { color: var(--gold-2); letter-spacing: 0; }
+.gd-answer:disabled { opacity: 1; }
+.gd-answer.gd-hidden:disabled { opacity: .5; }
+.reveal-hint { border-color: rgba(245,196,81,.5); }

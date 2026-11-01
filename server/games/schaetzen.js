@@ -57,8 +57,10 @@ export class Schaetzen extends SoloGame {
     const list = this.score();
     this.phase = 'reveal';
     this.room.fx(list.some((e) => e.bullseye) ? 'win' : 'reveal');
-    // Lösung zuerst, dann Schätzungen vom schlechtesten zum besten (1,4 s je Spieler)
-    this.room.step(1800 + 1400 * list.length + 3000, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Frage');
+    // Lösung zuerst, dann Schätzungen vom schlechtesten zum besten – Weiter deckt den Nächsten auf
+    this.room.startReveal(`es-${this.round}`, [...list].reverse().map((e) => e.pid), { ordered: true, autoMs: 1400 }, () => {
+      this.room.step(2500, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Frage');
+    });
     this.changed();
   }
 
