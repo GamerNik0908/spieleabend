@@ -1,6 +1,6 @@
 // Ansicht „Der Dümmste fliegt“: Spielerkacheln mit Leben, Schnellfragen, Abstimmung, Stechen.
 import {
-  html, act, gameOp, Avatar, Countdown, TimerBar, TypingView, AnswerInput, Judging, ByTag, Hearts, playerMap,
+  html, act, gameOp, useStagger, Avatar, Countdown, TimerBar, TypingView, AnswerInput, Judging, ByTag, Hearts, playerMap,
 } from '../lib.js';
 
 function Tile({ pid, st, g, pm }) {
@@ -70,6 +70,14 @@ function Center({ st, g, pm }) {
   if (g.phase === 'voteReveal' && g.voteResult) {
     const vr = g.voteResult;
     const tie = vr.top.length > 1;
+    if (vr.partial) {
+      return html`<div class="dm-question">
+        <div class="qtext">🗳️ Die Stimmen …</div>
+        <div class="row wrap" style="justify-content:center">
+          ${Object.entries(vr.votes).map(([from, to]) => html`<span class="pill" key=${from}>${pm[from]?.name} → <b>${pm[to]?.name}</b></span>`)}
+        </div>
+      </div>`;
+    }
     return html`<div class="dm-question">
       <div class="qtext">${tie ? `⚔️ Gleichstand: ${vr.top.map((p) => pm[p]?.name).join(' & ')}` : g.lastLoss ? `💔 ${pm[g.lastLoss.pid]?.name} verliert ein Leben` : `Die meisten Stimmen: ${pm[vr.top[0]]?.name}`}</div>
       <div class="row wrap" style="justify-content:center">
@@ -88,8 +96,20 @@ function Center({ st, g, pm }) {
   return html`<div class="dm-question"><div class="banner">Gleich geht's weiter …</div></div>`;
 }
 
-export function DuemmsteView({ st, g }) {
+export function DuemmsteView({ st, g: raw }) {
   const pm = playerMap(st);
+  // Stimmen einzeln „vorlesen“: Zähler steigen nacheinander, das Urteil kommt zum Schluss
+  const vr = raw.voteResult;
+  const entries = vr ? Object.entries(vr.votes) : [];
+  const reading = raw.phase === 'voteReveal' && !raw.lastLoss;
+  const shownVotes = useStagger(reading ? raw.timers.phase : null, entries.length, 700, 900);
+  let g = raw;
+  if (vr && reading && shownVotes < entries.length) {
+    const part = entries.slice(0, shownVotes);
+    const counts = {};
+    for (const [, to] of part) counts[to] = (counts[to] || 0) + 1;
+    g = { ...raw, voteResult: { ...vr, votes: Object.fromEntries(part), counts, partial: true } };
+  }
   const clockTimer = g.phase === 'vote' ? g.timers.vote : g.timers.round;
   const title = g.duel ? (g.duel.mode === 'final' ? 'Finale' : 'Stechen') : g.phase === 'vote' ? 'Abstimmung' : `Runde ${g.round || 1}`;
   const order = [...g.players].sort((a, b) => (g.alive.includes(b) - g.alive.includes(a)));

@@ -304,10 +304,8 @@ export class Room {
     this.clearAllTimers();
     this.game = null;
     this.paused = false;
-    const winners = sorted.filter((u) => u.rank === 1).map((u) => u.label).join(' & ');
-    const many = sorted.filter((u) => u.rank === 1).length > 1;
-    this.announce(`🏆 ${winners} ${many ? 'gewinnen' : 'gewinnt'}!`, 'win', `${this.results.title} ist vorbei`);
-    this.fx('win');
+    // Sieger wird nicht vorab eingeblendet – der Ergebnis-Bildschirm deckt von hinten nach vorne auf
+    this.fx('gong');
     this.changed();
   }
 

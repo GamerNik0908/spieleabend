@@ -304,10 +304,12 @@ export function playerMap(state) {
 }
 
 /** Punkteleiste für Spiele, in denen jeder für sich spielt */
-export function ScoreStrip({ st, g, mark = {} }) {
+export function ScoreStrip({ st, g, mark = {}, hold = {} }) {
   const pm = playerMap(st);
+  // hold: Punkte, die erst nach dem Aufdecken mitgezählt werden
+  const list = g.scores.map((s) => ({ ...s, score: s.score - (hold[s.pid] || 0) })).sort((a, b) => b.score - a.score);
   return html`<div class="score-strip">
-    ${g.scores.map((s, i) => pm[s.pid] && html`<div key=${s.pid} class=${`score-chip ${s.pid === st.me.id ? 'me' : ''} ${mark[s.pid] || ''}`}>
+    ${list.map((s, i) => pm[s.pid] && html`<div key=${s.pid} class=${`score-chip ${s.pid === st.me.id ? 'me' : ''} ${mark[s.pid] || ''}`}>
       <span class="rank">${i + 1}</span>
       <${Avatar} p=${pm[s.pid]} size=${34} />
       <span class="nm">${pm[s.pid].name}</span>
@@ -355,4 +357,24 @@ export function GameIcon({ id, emoji, size = 44 }) {
   return html`<span class=${`gicon ${bad ? '' : 'img'}`} data-g=${game} style=${`--s:${size}px`}>
     ${bad ? e : html`<img src=${src} alt="" onError=${() => { missing.add(src); setBad(true); }} />`}
   </span>`;
+}
+
+/**
+ * Schrittweise Auflösung, synchron für alle: zählt anhand des laufenden Phasen-Timers,
+ * wie viele Elemente schon gezeigt werden (bleibt auch nach Neuladen richtig).
+ */
+export function useStagger(timer, count, stepMs = 1400, delayMs = 600) {
+  useTick(!!timer && !timer.paused, 150);
+  if (!timer) return count;
+  const elapsed = timer.duration - remaining(timer);
+  return Math.max(0, Math.min(count, Math.floor((elapsed - delayMs) / stepMs) + 1));
+}
+
+/** Wie useStagger, aber ab dem ersten Anzeigen gezählt (ohne Server-Timer) */
+export function useLocalStagger(key, count, stepMs = 1200, delayMs = 800) {
+  const [start, setStart] = useState(() => Date.now());
+  useEffect(() => { setStart(Date.now()); }, [key]);
+  const done = Math.floor((Date.now() - start - delayMs) / stepMs) + 1 >= count;
+  useTick(!done, 150);
+  return Math.max(0, Math.min(count, Math.floor((Date.now() - start - delayMs) / stepMs) + 1));
 }

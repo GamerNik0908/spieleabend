@@ -99,7 +99,8 @@ export class Gleichdenker extends Game {
     this.phase = 'reveal';
     const best = Math.max(...Object.values(this.result).map((r) => r.pts));
     this.room.fx(best >= 3 ? 'win' : best > 0 ? 'win-round' : 'wrong');
-    this.room.setTimer('phase', 10000, () => this.nextRound());
+    // Teams nacheinander aufdecken – das beste zuletzt
+    this.room.setTimer('phase', 1000 + 2800 * this.teams.length + 5000, () => this.nextRound());
     this.changed();
   }
 

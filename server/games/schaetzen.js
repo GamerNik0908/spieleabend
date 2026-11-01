@@ -72,7 +72,8 @@ export class Schaetzen extends SoloGame {
     this.result = { a, unit: this.q.unit, info: this.q.info, list };
     this.phase = 'reveal';
     this.room.fx(list.some((e) => e.bullseye) ? 'win' : 'reveal');
-    this.room.setTimer('phase', 9000, () => this.nextRound());
+    // Lösung zuerst, dann Schätzungen vom schlechtesten zum besten (1,4 s je Spieler)
+    this.room.setTimer('phase', 1800 + 1400 * list.length + 5000, () => this.nextRound());
     this.changed();
   }
 

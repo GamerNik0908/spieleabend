@@ -192,3 +192,9 @@ body[data-game="gleichdenker"] { --accent: #3ad08a; }
 }
 
 .hero-logo-wrap img { width: 120px; height: 120px; object-fit: contain; display: block; margin: 0 auto 14px; filter: drop-shadow(0 18px 40px rgba(245,196,81,.25)); }
+
+/* Ergebnis: Plätze nacheinander aufdecken */
+.podium .hidden-place .block { background: rgba(255,255,255,.03) !important; border-style: dashed !important; box-shadow: none !important; }
+.podium .shown .block { animation: reveal .6s var(--ease) both; }
+.podium .place { animation: none; }
+.res-row { animation: fadeUp .45s var(--ease) both; }

@@ -424,7 +424,7 @@ canvas.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 65; 
 @keyframes pop { 0% { transform: scale(.6); } 100% { transform: scale(1); } }
 @keyframes fadeUp { from { transform: translateY(8px); } to { transform: none; } }
 @keyframes rise { from { transform: translateY(16px) scale(.985); } to { transform: none; } }
-@keyframes reveal { from { transform: scale(.94); opacity: 0; filter: blur(6px); } to { transform: none; opacity: 1; filter: none; } }
+@keyframes reveal { from { transform: scale(.92); } to { transform: none; } }
 @keyframes flip { 0% { transform: rotateX(-90deg); } 100% { transform: rotateX(0); } }
 @keyframes shake { 0%, 100% { transform: translateX(0); } 25%, 75% { transform: translateX(-6px); } 50% { transform: translateX(6px); } }
 @keyframes flashok { 0% { box-shadow: 0 0 0 0 rgba(58,208,138,.9); } 100% { box-shadow: 0 0 0 22px rgba(58,208,138,0); } }

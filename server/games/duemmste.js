@@ -189,13 +189,15 @@ export class Duemmste extends Game {
     const top = alive.filter((p) => counts[p] === max);
     this.voteResult = { votes: { ...this.votes }, counts, top, max };
     this.phase = 'voteReveal';
+    // Stimmen werden einzeln vorgelesen (0,7 s je Stimme), dann das Urteil
+    const readMs = 900 + 700 * Object.keys(this.votes).length + 1200;
     if (top.length === 1) {
-      this.room.setTimer('phase', 4500, () => {
+      this.room.setTimer('phase', readMs, () => {
         this.loseLife(top[0], `${max} ${max === 1 ? 'Stimme' : 'Stimmen'}`);
         this.room.setTimer('phase', 5000, () => this.startRound());
       });
     } else {
-      this.room.setTimer('phase', 5000, () => this.startDuel(top, 'tie'));
+      this.room.setTimer('phase', readMs + 1500, () => this.startDuel(top, 'tie'));
     }
     this.changed();
   }

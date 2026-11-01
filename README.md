@@ -98,7 +98,7 @@ Ohne KI funktionieren Tippfehler, Zahlwörter und alle hinterlegten Varianten. F
    $env:ANTHROPIC_API_KEY="sk-ant-..."; npm start
    ```
 
-   Auf Render: Umgebungsvariable `ANTHROPIC_API_KEY` eintragen.
+   Auf Render: im Dashboard den Dienst **spieleabend** öffnen → links **Environment** → **Add Environment Variable** → Key `ANTHROPIC_API_KEY`, Value = dein Key → **Save, rebuild and deploy**. Nach dem Neustart steht oben in der Seite „🤖 KI-Richter“.
 
 Die KI wird nur gefragt, wenn die lokale Erkennung nicht passt, und Ergebnisse werden zwischengespeichert. Standardmodell ist `claude-opus-5-5` mit niedriger Denktiefe; über `AI_MODEL` lässt sich ein anderes Modell wählen (z. B. `claude-haiku-5-5` ist deutlich günstiger). In der Oberfläche steht bei jeder Bewertung, wer entschieden hat: **Auto**, **KI** oder **Operator**.
 

@@ -193,7 +193,8 @@ export class Witzbold extends SoloGame {
     });
     this.phase = 'finalReveal';
     this.room.fx('win');
-    this.room.setTimer('phase', 9000, () => this.finish());
+    // Antworten von wenigen zu vielen Stimmen aufdecken
+    this.room.setTimer('phase', 1000 + 2200 * f.order.length + 5000, () => this.finish());
     this.changed();
   }
 
