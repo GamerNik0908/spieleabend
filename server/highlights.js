@@ -89,7 +89,40 @@ function awards(room) {
   return list.filter(([, , , w]) => w).map(([icon, title, why, w]) => ({ icon, title, why, name: w.name, n: w.n }));
 }
 
-/** Fertigen Rückblick bauen. Rückgabe { items, awards, title, games } */
+/** Bilanz pro Person aus den Momenten – Futter für das Urteil am Ende */
+function playerStats(room, name) {
+  const st = {};
+  const get = (pid) => (st[pid] ||= { right: 0, wrong: 0, wins: 0, fooled: 0, drawn: 0, flops: 0, jokes: 0, worst: null });
+  for (const m of room.moments) {
+    for (const pid of m.pids || []) {
+      const s = get(pid);
+      if (['answer', 'survey'].includes(m.kind)) {
+        if (m.ok) s.right++;
+        else if (m.text) { s.wrong++; if (!s.worst || (m.score || 0) >= 3) s.worst = `„${m.text}“ (Frage: ${m.q}${m.a ? `, richtig: ${m.a}` : ''})`; }
+      }
+      if (m.kind === 'win') s.wins++;
+      if (m.kind === 'lie') s.fooled += m.extra?.fooled || 0;
+      if (m.kind === 'drawing') { if (m.extra?.guessers) s.drawn++; else s.flops++; }
+      if (m.kind === 'joke') s.jokes++;
+    }
+  }
+  const ids = [...room.players.keys()];
+  return ids.map((pid) => ({ pid, name: name(pid), ...(st[pid] || get(pid)) }));
+}
+
+const ROAST_FALLBACK = [
+  (s) => s.wrong > s.right && `${s.wrong} falsche Antworten – ${s.name} rät wie ein Horoskop: selbstbewusst und meistens daneben.`,
+  (s) => s.flops > 0 && `${s.name} hat gezeichnet, und niemand wusste, was es sein soll. Moderne Kunst eben.`,
+  (s) => s.fooled >= 2 && `${s.name} hat ${s.fooled} Leute angelogen, ohne rot zu werden. Wir sollten reden.`,
+  (s) => s.wins >= 1 && `${s.name} hat gewonnen und wird uns das noch wochenlang erzählen.`,
+  (s) => s.right > s.wrong && `${s.name} wusste erschreckend viel. Wer hat dir die Antworten gegeben?`,
+  (s) => s.right > 0 && `${s.right} richtige Antworten – ${s.name} hat heute heimlich Wikipedia auswendig gelernt.`,
+  (s) => `${s.name} war auch da. Mehr gibt es dazu leider nicht zu sagen.`,
+  (s) => `${s.name} hat heute vor allem eins bewiesen: Dabei sein ist wirklich alles.`,
+  (s) => `${s.name} spielt nach dem Motto: Hauptsache, die anderen haben Spaß.`,
+];
+
+/** Fertigen Rückblick bauen. Rückgabe { items, awards, roasts, games, players } */
 export async function buildRecap(room) {
   const loud = room.loud || [];
   const pool = room.moments.filter((m) => (m.score || 0) > 0).map((m) => ({ ...m, rank: (m.score || 0) + loudBoost(m, loud) }));
@@ -101,19 +134,36 @@ export async function buildRecap(room) {
   }
   pool.sort((a, b) => b.rank - a.rank);
   const cands = pool.slice(0, 120);
-  let picks = null;
+  const name = (pid) => room.players.get(pid)?.name || room.pastNames?.[pid] || '???';
+  const stats = playerStats(room, name);
+  let ai = null;
   if (room.aiOn && cands.length > 3) {
-    picks = await aiHighlights({
+    ai = await aiHighlights({
       moments: cands.map((m) => ({
-        id: String(m.id), game: m.title || m.game, kind: m.kind, context: m.q || '', text: m.text || '',
-        extra: m.note || '', loud: m.rank - (m.score || 0) > 0,
+        id: String(m.id), game: m.title || m.game, kind: m.kind, who: (m.pids || []).map(name).join(', '),
+        context: m.q || '', text: m.text || '', extra: [m.note, m.a && m.ok === false ? `richtig: ${m.a}` : ''].filter(Boolean).join(' · '),
+        loud: m.rank - (m.score || 0) > 0,
       })),
+      players: stats.map((s) => `${s.name}: ${s.right} richtig, ${s.wrong} falsch, ${s.wins} Spiele gewonnen, ${s.fooled} Leute reingelegt, ${s.drawn} Zeichnungen erraten, ${s.flops} Zeichnungen nicht erkannt${s.worst ? `, schlimmste Antwort: ${s.worst}` : ''}`),
       max: MAX_ITEMS,
     });
   }
-  if (!picks?.length) picks = pickLocal(cands, MAX_ITEMS);
+  const picks = ai?.picks?.length ? ai.picks : pickLocal(cands, MAX_ITEMS);
   const byId = new Map(cands.map((m) => [String(m.id), m]));
-  const name = (pid) => room.players.get(pid)?.name || room.pastNames?.[pid] || '???';
+  const aiRoast = new Map((ai?.roasts || []).map((r) => [String(r.name).trim().toLowerCase(), r.line]));
+  // Ohne KI: je Person der erste passende Spruch, der noch nicht vergeben ist
+  const used = new Set();
+  const fallback = (s) => {
+    const k = ROAST_FALLBACK.findIndex((f, idx) => !used.has(idx) && f(s));
+    const idx = k >= 0 ? k : ROAST_FALLBACK.length - 1 - (used.size % 3);
+    used.add(idx);
+    return ROAST_FALLBACK[idx](s);
+  };
+  const roasts = stats.map((s) => ({
+    name: s.name,
+    avatar: store.imageUrl(store.profile(room.players.get(s.pid)?.profileId)?.avatar),
+    line: String(aiRoast.get(s.name.trim().toLowerCase()) || fallback(s)).slice(0, 160),
+  }));
   const avatar = (pid) => {
     const p = room.players.get(pid);
     return p ? store.imageUrl(store.profile(p.profileId)?.avatar) : null;
@@ -140,5 +190,5 @@ export async function buildRecap(room) {
       clip: loud.length || room.recordedOnce ? clipWindow(m, loud) : null,
     }));
   const games = [...new Set(room.moments.filter((m) => m.kind === 'win').map((m) => m.title || m.game))];
-  return { items, awards: awards(room), games, players: [...room.players.values()].map((p) => p.name) };
+  return { items, awards: awards(room), roasts, games, players: [...room.players.values()].map((p) => p.name) };
 }

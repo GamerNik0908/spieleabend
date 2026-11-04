@@ -24,7 +24,7 @@ import { VerhoerView } from './games/verhoer.js';
 import { AuktionView } from './games/auktion.js';
 import { ZeitstrahlView } from './games/zeitstrahl.js';
 import { EmojiView } from './games/emoji.js';
-import { RecapOverlay, RecBadge } from './recap.js';
+import { RecBadge } from './recap.js';
 
 // ---------- Socket-Verdrahtung ----------
 socket.on('connect', async () => {
@@ -251,7 +251,6 @@ function Room({ st }) {
     ${!st.me.isOperator && st.waiting && st.screen === 'game' && html`<div class="wait-op">⏳ ${st.players.find((p) => p.isOperator)?.name || 'Der Operator'} schaltet gleich weiter …</div>`}
     <${PauseScreen} st=${st} />
     <${TutorialOverlay} st=${st} />
-    <${RecapOverlay} st=${st} />
   </div>`;
 }
 
@@ -268,7 +267,6 @@ function TvRoom({ st }) {
     ${st.waiting && st.screen === 'game' && html`<div class="wait-op">⏳ ${st.players.find((p) => p.isOperator)?.name || 'Der Operator'} schaltet gleich weiter …</div>`}
     <${PauseScreen} st=${st} />
     <${TutorialOverlay} st=${st} />
-    <${RecapOverlay} st=${st} />
   </div>`;
 }
 

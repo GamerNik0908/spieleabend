@@ -1,7 +1,6 @@
-// Rückblick des Abends: Highlight-Folien zum gemeinsamen Anschauen (synchron für alle, auch in
-// der Zuschauer-Ansicht) und als Video zum Speichern. Live-Show und Video benutzen dieselbe
-// Zeichenfunktion – was ihr seht, ist das, was im Video landet.
-import { html, useState, useEffect, useRef, op, emit, toast, GAME_EMOJI } from './lib.js';
+// Highlight-Video des Abends: Ein Knopf beim Operator – die KI sucht die besten Momente aus,
+// roastet alle Beteiligten, und der Browser schneidet daraus ein fertiges Video (MP4/WebM).
+import { html, useState, useEffect, op, emit, toast, stateStore, GAME_EMOJI } from './lib.js';
 import { recorder, getClip, audioMinutes, clearAudio } from './recorder.js';
 
 const W = 1280, H = 720;
@@ -25,8 +24,8 @@ function img(url) {
   const i = imgCache.get(url);
   return i.complete && i.naturalWidth ? i : null;
 }
-export function preloadImages(items) {
-  return Promise.all(items.flatMap((it) => it.people || []).map((p) => p.avatar && new Promise((res) => {
+export function preloadImages(people) {
+  return Promise.all(people.map((p) => p.avatar && new Promise((res) => {
     const i = img(p.avatar) ? null : imgCache.get(p.avatar);
     if (!i) return res();
     i.onload = res; i.onerror = res;
@@ -107,6 +106,7 @@ export function drawSlide(ctx, slide, p) {
   ctx.textBaseline = 'alphabetic';
   if (slide.type === 'intro') drawIntro(ctx, slide, p);
   else if (slide.type === 'awards') drawAwards(ctx, slide, p);
+  else if (slide.type === 'roasts') drawRoasts(ctx, slide, p);
   else drawItem(ctx, slide, p);
   ctx.restore();
 }
@@ -150,6 +150,30 @@ function drawAwards(ctx, { awards }, p) {
     ctx.font = font(FUN, 30); ctx.fillStyle = '#f5c451'; ctx.fillText(aw.title, 290, y + 38);
     ctx.font = font(BODY, 20); ctx.fillStyle = '#b9b3cc'; ctx.fillText(aw.why || '', 290, y + 66);
     ctx.textAlign = 'right'; ctx.font = font(FUN, 34); ctx.fillStyle = '#fff'; ctx.fillText(aw.name, 1065, y + 54);
+  });
+}
+
+function drawRoasts(ctx, { roasts }, p) {
+  background(ctx, '#ff5fa2');
+  ctx.textAlign = 'center';
+  ctx.globalAlpha = ease(p * 6);
+  ctx.fillStyle = '#fff'; ctx.font = font(FUN, 60);
+  ctx.fillText('🔥 Das Urteil', W / 2, 105);
+  const list = roasts.slice(0, 6);
+  const rowH = Math.min(96, 560 / list.length);
+  list.forEach((r, i) => {
+    // Eine Person nach der anderen erscheint
+    const a = ease((p * (list.length + 1) - i - 0.6) * 2);
+    if (a <= 0) return;
+    ctx.globalAlpha = a;
+    const y = 140 + i * rowH + (1 - a) * 24;
+    rrect(ctx, 70, y, W - 140, rowH - 12, 18); ctx.fillStyle = 'rgba(255,255,255,0.06)'; ctx.fill();
+    const size = Math.min(60, rowH - 30);
+    avatar(ctx, r, 92, y + (rowH - 12 - size) / 2, size);
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#ff9cc7'; ctx.font = font(FUN, 24); ctx.fillText(r.name, 110 + size, y + 32);
+    ctx.fillStyle = '#fff'; ctx.font = font(BODY, rowH > 80 ? 22 : 19, 500);
+    wrap(ctx, r.line, W - 260 - size, 2).forEach((l, k) => ctx.fillText(l, 110 + size, y + 60 + k * 26));
   });
 }
 
@@ -223,12 +247,15 @@ function drawItem(ctx, { item, n, total }, p) {
 }
 
 // ---------- Folienfolge ----------
+const chunk = (arr, n) => Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
+
 export function slidesOf(data) {
   const items = data.items || [];
   return [
     { type: 'intro', data, dur: 5000 },
     ...items.map((item, i) => ({ type: 'item', item, n: i + 1, total: items.length })),
-    { type: 'awards', awards: data.awards, dur: 9000 },
+    ...(data.awards?.length ? [{ type: 'awards', awards: data.awards, dur: 8000 }] : []),
+    ...chunk(data.roasts || [], 6).map((roasts) => ({ type: 'roasts', roasts, dur: 3000 + roasts.length * 3500 })),
   ];
 }
 
@@ -236,93 +263,6 @@ function slideDuration(slide, clip) {
   if (slide.dur) return slide.dur;
   const base = slide.item.drawing ? 9000 : 7000;
   return clip ? Math.min(16000, Math.max(base, clip.duration * 1000 + 1200)) : base;
-}
-
-/** Folie aus dem Live-Zustand (st.recap) */
-function liveSlide(r) {
-  if (r.idx === 0) return r.intro ? { type: 'intro', data: r.intro, dur: 5000 } : null;
-  if (r.idx > r.count) return { type: 'awards', awards: r.awards, dur: 9000 };
-  return r.item ? { type: 'item', item: r.item, n: r.idx, total: r.count } : null;
-}
-
-let playCtx = null;
-function playBuffer(buf) {
-  playCtx ||= new (window.AudioContext || window.webkitAudioContext)();
-  if (playCtx.state === 'suspended') playCtx.resume();
-  const src = playCtx.createBufferSource();
-  src.buffer = buf;
-  src.connect(playCtx.destination);
-  src.start();
-  return () => { try { src.stop(); } catch { /* schon zu Ende */ } };
-}
-
-// ---------- Live-Show für alle ----------
-export function RecapOverlay({ st }) {
-  const r = st.recap;
-  const isOp = st.me.isOperator;
-  const canvasRef = useRef(null);
-  const [sound, setSound] = useState(() => localStorage.getItem('recapSound') !== '0');
-  const slide = r?.open && r.status === 'ready' ? liveSlide(r) : null;
-  const key = slide ? `${r.version}-${r.idx}` : null;
-
-  useEffect(() => {
-    if (!slide || !canvasRef.current) return undefined;
-    const ctx = canvasRef.current.getContext('2d');
-    const start = performance.now();
-    let stopAudio = null;
-    let dur = slideDuration(slide, null);
-    let raf = 0;
-    const frame = () => {
-      drawSlide(ctx, slide, (performance.now() - start) / dur);
-      raf = requestAnimationFrame(frame);
-    };
-    frame();
-    // Ton-Ausschnitt gibt es nur in dem Browser, der aufgenommen hat (Operator und seine Zuschauer-Ansicht)
-    let cancelled = false;
-    if (sound && slide.item?.clip) {
-      getClip(st.code, slide.item.clip.from, slide.item.clip.to).then((buf) => {
-        if (cancelled || !buf) return;
-        dur = slideDuration(slide, buf);
-        stopAudio = playBuffer(buf);
-      }).catch(() => {});
-    }
-    return () => { cancelled = true; cancelAnimationFrame(raf); stopAudio?.(); };
-  }, [key, sound]);
-
-  useEffect(() => {
-    if (!isOp || !r?.open) return undefined;
-    const onKey = (e) => {
-      if (['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) return;
-      if (e.key === 'ArrowRight' || e.key === 'Enter') { e.preventDefault(); e.stopImmediatePropagation(); op('recapGo', { idx: r.idx + 1 }); }
-      if (e.key === 'ArrowLeft') op('recapGo', { idx: r.idx - 1 });
-      if (e.key === 'Escape') op('recapClose');
-    };
-    window.addEventListener('keydown', onKey, true);
-    return () => window.removeEventListener('keydown', onKey, true);
-  }, [isOp, r?.open, r?.idx]);
-
-  if (!r?.open) return null;
-  const last = r.idx > r.count;
-  return html`<div class="recap-back">
-    <div class="recap-box">
-      ${r.status === 'building' && html`<div class="card center recap-msg"><div class="fun" style="font-size:34px">🎬 Der Rückblick wird geschnitten …</div>
-        <p class="muted">${st.aiOn && st.ai ? 'Die KI sucht die lustigsten, schlausten und dramatischsten Momente aus und schreibt Kommentare dazu.' : 'Die besten Momente werden ausgesucht.'}</p><div class="spinner"></div></div>`}
-      ${r.status === 'empty' && html`<div class="card center recap-msg"><div class="fun" style="font-size:30px">Noch keine Highlights</div><p class="muted">Spielt erst ein paar Runden!</p></div>`}
-      ${r.status === 'error' && html`<div class="card center recap-msg"><div class="fun" style="font-size:30px">Das hat nicht geklappt 😕</div><p class="muted">Bitte nochmal versuchen.</p></div>`}
-      ${slide && html`<canvas ref=${canvasRef} class="recap-canvas" width=${W} height=${H}></canvas>`}
-      <div class="row wrap recap-ctrl">
-        ${isOp && r.status === 'ready' && html`
-          <button class="btn" disabled=${r.idx <= 0} onClick=${() => op('recapGo', { idx: r.idx - 1 })}>← Zurück</button>
-          ${!last ? html`<button class="btn primary" onClick=${() => op('recapGo', { idx: r.idx + 1 })}>Weiter → <span class="kbd">Enter</span></button>`
-            : html`<button class="btn primary" onClick=${() => op('recapClose')}>Fertig ✓</button>`}
-          <${ExportButton} st=${st} />`}
-        <button class=${`btn sm ${sound ? '' : 'ghost'}`} title="Ton-Ausschnitte in diesem Tab abspielen (nur wenn hier aufgenommen wurde)"
-          onClick=${() => { localStorage.setItem('recapSound', sound ? '0' : '1'); setSound(!sound); }}>${sound ? '🔊' : '🔇'}</button>
-        ${isOp && html`<button class="btn sm ghost" onClick=${() => op('recapClose')}>✕ Schließen</button>`}
-        ${!isOp && html`<span class="muted small">${st.players.find((p) => p.isOperator)?.name || 'Der Operator'} blättert weiter …</span>`}
-      </div>
-    </div>
-  </div>`;
 }
 
 // ---------- Video-Export (beim Operator) ----------
@@ -339,7 +279,7 @@ export async function exportVideo(code, onProgress) {
   if (!data?.items) throw new Error('Kein Rückblick vorhanden.');
   const slides = slidesOf(data);
   onProgress({ step: 'Bilder und Ton werden vorbereitet …', p: 0 });
-  await preloadImages(data.items);
+  await preloadImages([...data.items.flatMap((it) => it.people || []), ...(data.roasts || [])]);
   const clips = [];
   for (const s of slides) clips.push(s.item?.clip ? await getClip(code, s.item.clip.from, s.item.clip.to).catch(() => null) : null);
   const durs = slides.map((s, i) => slideDuration(s, clips[i]));
@@ -388,24 +328,6 @@ export async function exportVideo(code, onProgress) {
   return { ext, mb: Math.round(blob.size / 1e5) / 10, seconds: Math.round(total / 1000) };
 }
 
-function ExportButton({ st }) {
-  const [prog, setProg] = useState(null);
-  const run = async () => {
-    if (prog) return;
-    setProg({ step: 'Start …', p: 0 });
-    try {
-      const r = await exportVideo(st.code, setProg);
-      toast(`🎬 Video gespeichert (${r.seconds} s, ${r.mb} MB, .${r.ext})`);
-    } catch (err) {
-      toast(err.message || 'Video-Export fehlgeschlagen', 'error');
-    }
-    setProg(null);
-  };
-  return prog
-    ? html`<span class="pill">🎬 ${prog.step} · ${Math.round(prog.p * 100)} % – Tab bitte offen lassen</span>`
-    : html`<button class="btn sm" title="Erstellt das Video in Echtzeit (so lang wie der Rückblick) und lädt es herunter" onClick=${run}>💾 Als Video speichern</button>`;
-}
-
 // ---------- Bedienfeld für den Operator (Lobby & Ergebnis) ----------
 function useRecorder() {
   const [, force] = useState(0);
@@ -422,45 +344,68 @@ export function RecapPanel({ st }) {
   const [minutes, setMinutes] = useState(null);
   const [ask, setAsk] = useState(false);
   const [opts, setOpts] = useState({ system: true, mic: true });
-  const r = st.recap;
-  useEffect(() => { audioMinutes(st.code).then(setMinutes).catch(() => {}); }, [st.code, rec.active, st.recap?.version]);
+  const [job, setJob] = useState(null); // { step, p }
+  useEffect(() => { audioMinutes(st.code).then(setMinutes).catch(() => {}); }, [st.code, rec.active, job]);
   // Nach einem Neuladen läuft keine Aufnahme mehr – Anzeige für alle korrigieren
   useEffect(() => { if (st.recording && !rec.active) op('recording', { on: false }); }, []);
-  const start = async () => {
+
+  const startRec = async () => {
     setAsk(false);
     try { await rec.start(st.code, opts); } catch (err) { toast(err.message, 'error'); }
   };
+
+  /** Ein Knopf: KI schneidet → Video wird gerendert → Download */
+  const makeVideo = async () => {
+    if (job) return;
+    setJob({ step: 'Die KI sucht die besten Momente aus …', p: 0 });
+    try {
+      const before = stateStore.get()?.recap?.version || 0;
+      const r = await op('recapBuild');
+      if (r?.error) throw new Error(r.error);
+      let cur = stateStore.get()?.recap;
+      for (let i = 0; i < 240 && !(cur?.version > before && ['ready', 'empty', 'error'].includes(cur.status)); i++) {
+        await sleep(500);
+        cur = stateStore.get()?.recap;
+      }
+      if (cur?.status === 'empty') throw new Error('Noch keine Highlights – spielt erst ein paar Runden!');
+      if (cur?.status !== 'ready') throw new Error('Die Highlights konnten nicht erstellt werden – bitte nochmal versuchen.');
+      const res = await exportVideo(st.code, (p) => setJob({ step: p.step, p: p.p }));
+      toast(`🎬 Dein Highlight-Video ist fertig (${Math.round(res.seconds / 6) / 10} Min., ${res.mb} MB)`);
+    } catch (err) {
+      toast(err.message || 'Video konnte nicht erstellt werden', 'error');
+    }
+    setJob(null);
+  };
+
   const level = Math.min(1, rec.level * 8);
   return html`<div class="card recap-panel">
-    <div class="row wrap" style="gap:10px;justify-content:space-between">
-      <div><div class="section-title" style="margin:0">🎬 Highlights des Abends</div>
-        <div class="small muted">${st.moments || 0} Momente gesammelt${minutes ? ` · ${minutes} Min. Ton auf diesem PC` : ''}</div></div>
-      <div class="row wrap" style="gap:8px">
-        ${r?.status === 'ready' && html`<button class="btn sm" onClick=${() => op('recapOpen')}>▶ Rückblick zeigen</button>`}
-        <button class="btn sm primary" disabled=${r?.status === 'building'} onClick=${() => op('recapBuild')}>${r?.data || r?.status === 'ready' ? '🔄 Neu schneiden' : '🎬 Rückblick erstellen'}</button>
-        ${r?.status === 'ready' && html`<${ExportButton} st=${st} />`}
-      </div>
+    <div class="row wrap" style="gap:12px;justify-content:space-between">
+      <div><div class="section-title" style="margin:0">🎬 Highlight-Video</div>
+        <div class="small muted">${st.moments || 0} Momente gesammelt${minutes ? ` · ${minutes} Min. Ton` : ''} · am Ende des Abends drücken</div></div>
+      ${job
+        ? html`<div class="recap-job"><div class="small"><b>${job.step}</b></div>
+            <div class="rec-meter" style="width:220px"><i style=${`width:${Math.round(job.p * 100)}%`}></i></div>
+            <div class="tiny muted">Tab bitte offen lassen – das Video entsteht in Echtzeit.</div></div>`
+        : html`<button class="btn primary lg" disabled=${(st.moments || 0) < 3} onClick=${makeVideo}>🎬 Highlight-Video erstellen</button>`}
     </div>
     <div class="recap-rec">
       ${rec.active
         ? html`<span class="rec-dot"></span><b>Ton-Aufnahme läuft</b><span class="rec-meter"><i style=${`width:${Math.round(level * 100)}%`}></i></span>
             <button class="btn xs bad" onClick=${() => rec.stop()}>⏹ Stoppen</button>`
-        : html`<button class="btn xs" onClick=${() => setAsk(!ask)}>🎙️ Ton mit aufnehmen (optional)</button>
-            <span class="tiny muted">Ohne Ton klappt der Rückblick auch – mit Ton findet er eure Lacher.</span>`}
+        : html`<button class="btn xs ghost" onClick=${() => setAsk(!ask)}>🎙️ Ton mit aufnehmen (optional)</button>`}
+      <div class="spacer"></div>
+      <a class="tiny muted" href="#" onClick=${async (e) => { e.preventDefault(); if (confirm('Neuen Abend beginnen? Alle gesammelten Momente und der aufgenommene Ton dieses Raums werden gelöscht.')) { if (rec.active) rec.stop(); await clearAudio(st.code); op('recapReset'); setMinutes(0); } }}>🗑 Neuer Abend</a>
     </div>
     ${ask && !rec.active && html`<div class="recap-ask">
-      <p class="small" style="margin:0 0 8px"><b>Wichtig:</b> Nur aufnehmen, wenn <b>alle einverstanden</b> sind. Alle sehen ein 🔴 solange aufgenommen wird.
-        Der Ton bleibt <b>nur auf deinem PC</b> (im Browser gespeichert) und wird nie hochgeladen.</p>
+      <p class="small" style="margin:0 0 8px"><b>Nur aufnehmen, wenn alle einverstanden sind.</b> Alle sehen ein 🔴, solange aufgenommen wird.
+        Der Ton bleibt <b>nur auf deinem PC</b> und wird nie hochgeladen. Mit Ton findet das Video eure Lacher und spielt sie ab.</p>
       <label class="row" style="gap:8px"><input type="checkbox" checked=${opts.system} onChange=${(e) => setOpts({ ...opts, system: e.target.checked })} />
         PC-Ton (Stimmen aus Discord) – im nächsten Fenster <b>„Gesamter Bildschirm“</b> wählen und <b>„Systemaudio teilen“</b> anhaken</label>
       <label class="row" style="gap:8px"><input type="checkbox" checked=${opts.mic} onChange=${(e) => setOpts({ ...opts, mic: e.target.checked })} />
         Mein Mikrofon (deine eigene Stimme)</label>
-      <div class="row" style="gap:8px;margin-top:8px"><button class="btn sm primary" onClick=${start}>🔴 Alle sind einverstanden – Aufnahme starten</button>
+      <div class="row" style="gap:8px;margin-top:8px"><button class="btn sm primary" onClick=${startRec}>🔴 Alle sind einverstanden – Aufnahme starten</button>
         <button class="btn sm ghost" onClick=${() => setAsk(false)}>Abbrechen</button></div>
     </div>`}
-    <div class="tiny muted" style="margin-top:6px">
-      <a href="#" onClick=${async (e) => { e.preventDefault(); if (confirm('Neuen Abend beginnen? Alle gesammelten Highlights und der aufgenommene Ton dieses Raums werden gelöscht.')) { if (rec.active) rec.stop(); await clearAudio(st.code); op('recapReset'); setMinutes(0); } }}>🗑 Neuer Abend (Highlights und Ton löschen)</a>
-    </div>
   </div>`;
 }
 

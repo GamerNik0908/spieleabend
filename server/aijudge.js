@@ -82,14 +82,22 @@ Setze solved=true nur, wenn die Frage den geheimen Begriff (oder ein echtes Syno
 ${RULES_INJECTION}
 Antworte nur im vorgegebenen JSON-Format.`;
 
-const HIGHLIGHT_SYSTEM = `Du bist Cutter und Kommentator für das Highlight-Video eines Spieleabends unter Freunden.
-Du bekommst eine Liste gesammelter Momente aus verschiedenen Partyspielen (Antworten, Lügen, Zeichnungen, Schätzungen …).
-Wähle die unterhaltsamsten Momente für einen Rückblick aus: vor allem lustige, absurde oder kreative falsche Antworten,
-starke Lügen, knappe Entscheidungen, Volltreffer und clevere Antworten. Achte auf Abwechslung zwischen Spielen und Personen.
-Momente mit loud=true waren im Raum besonders laut (vermutlich Gelächter) – die sind meist gute Kandidaten.
-Gib jedem gewählten Moment:
-- tag: "lustig", "schlau", "cool" oder "drama"
-- caption: einen kurzen, witzigen Kommentar auf Deutsch (max. 90 Zeichen), freundlich frotzelnd, nie beleidigend oder gemein
+const HIGHLIGHT_SYSTEM = `Du bist der Roast-Kommentator für das Highlight-Video eines Spieleabends unter Freunden.
+Du bekommst gesammelte Momente aus Partyspielen (Antworten, Lügen, Zeichnungen, Schätzungen …) und eine Bilanz pro Person.
+
+1. Wähle die besten Momente für das Video: vor allem peinlich falsche, absurde oder kreative Antworten, Zeichnungen,
+   die keiner erkannt hat, dreiste Lügen, Schätzungen weit daneben – aber auch ein paar Glanzmomente, die man feiern kann.
+   Momente mit loud=true waren im Raum besonders laut (vermutlich Gelächter) – fast immer gute Kandidaten.
+   Achte auf Abwechslung: möglichst jede Person mindestens einmal, verschiedene Spiele.
+2. Schreib zu jedem Moment eine caption (max. 100 Zeichen): ein frecher Roast, der die Person beim Namen nennt und
+   sie für genau diesen Moment in die Pfanne haut – trocken, überspitzt, wie ein Comedy-Roast unter Freunden.
+   Bei Glanzmomenten darf es ein ironisches Lob sein.
+3. Schreib für JEDE Person aus der Bilanz einen Abschluss-Roast (roasts, max. 150 Zeichen), der auf ihrer Bilanz
+   oder ihrer schlimmsten Antwort aufbaut.
+
+Regeln für den Humor: austeilen ja, aber nur über das Verhalten im Spiel (Antworten, Wissen, Zeichnungen, Lügen, Pech).
+Niemals über Aussehen, Körper, Herkunft, Religion, Sexualität, Geschlecht oder Krankheiten, keine Schimpfwörter,
+nichts, wobei sich jemand ernsthaft schämen müsste. Lieber clever als derb.
 ${RULES_INJECTION}
 Antworte nur im vorgegebenen JSON-Format.`;
 
@@ -119,6 +127,7 @@ const AskAnswerGemini = {
 };
 const Highlights = z.object({
   picks: z.array(z.object({ id: z.string(), tag: z.enum(['lustig', 'schlau', 'cool', 'drama']), caption: z.string() })),
+  roasts: z.array(z.object({ name: z.string(), line: z.string() })),
 });
 const HighlightsGemini = {
   type: 'OBJECT',
@@ -131,8 +140,12 @@ const HighlightsGemini = {
         required: ['id', 'tag', 'caption'],
       },
     },
+    roasts: {
+      type: 'ARRAY',
+      items: { type: 'OBJECT', properties: { name: { type: 'STRING' }, line: { type: 'STRING' } }, required: ['name', 'line'] },
+    },
   },
-  required: ['picks'],
+  required: ['picks', 'roasts'],
 };
 const Groups = z.object({
   groups: z.array(z.array(z.number().int())).describe('Gruppen von Antwort-Nummern, die dasselbe meinen'),
@@ -232,21 +245,27 @@ Frage des Spielers: """${String(question).slice(0, 160)}"""`;
  * Wählt Highlights für den Rückblick aus und kommentiert sie.
  * moments: [{ id, game, kind, context, text, extra, loud }] → [{ id, tag, caption }] oder null
  */
-export async function aiHighlights({ moments, max = 14 }) {
+export async function aiHighlights({ moments, players = [], max = 14 }) {
   if (!PROVIDER || !moments.length) return null;
   // Läuft einmal pro Abend und umgeht deshalb das Minutenlimit
-  const list = moments.map((m) => [m.id, m.game, m.kind, m.context, m.text, m.extra, m.loud ? 'loud=true' : '']
+  const list = moments.map((m) => [m.id, m.game, m.kind, m.who, m.context, m.text, m.extra, m.loud ? 'loud=true' : '']
     .map((x) => String(x || '').replace(/\s+/g, ' ').slice(0, 140)).join(' | ')).join('\n');
   const content = `Wähle bis zu ${max} Momente (mindestens ${Math.min(6, moments.length)}).
-Format je Zeile: id | Spiel | Art | Kontext/Frage | Text/Antwort | Zusatz | laut
-${list}`;
+Format je Zeile: id | Spiel | Art | Wer | Kontext/Frage | Text/Antwort | Zusatz | laut
+${list}
+
+Bilanz pro Person (für die Abschluss-Roasts, Namen genau so übernehmen):
+${players.join('\n')}`;
   const parsed = PROVIDER === 'gemini'
     ? await askGemini(HIGHLIGHT_SYSTEM, content, HighlightsGemini, 4000, 60000)
     : await askClaude(HIGHLIGHT_SYSTEM, content, Highlights, 60000);
   if (!parsed || !Array.isArray(parsed.picks)) return null;
   const ids = new Set(moments.map((m) => String(m.id)));
   const seen = new Set();
-  return parsed.picks.filter((p) => ids.has(String(p.id)) && !seen.has(String(p.id)) && seen.add(String(p.id))).slice(0, max);
+  return {
+    picks: parsed.picks.filter((p) => ids.has(String(p.id)) && !seen.has(String(p.id)) && seen.add(String(p.id))).slice(0, max),
+    roasts: Array.isArray(parsed.roasts) ? parsed.roasts : [],
+  };
 }
 
 async function ask(system, content, zodSchema, geminiSchema, maxTokens = 400) {

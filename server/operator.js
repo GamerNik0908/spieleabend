@@ -215,12 +215,11 @@ export function handleOp(room, by, a) {
       if (room.recap?.status === 'building') throw new Error('Der Rückblick wird schon erstellt …');
       if (room.moments.length < 3) throw new Error('Noch zu wenig passiert – spielt erst eine Runde!');
       const version = (room.recap?.version || 0) + 1;
-      room.recap = { status: 'building', open: true, idx: 0, data: null, version };
-      room.announce('🎬 Der Rückblick wird geschnitten …', 'start', 'Die besten Momente des Abends');
+      room.recap = { status: 'building', data: null, version };
       room.changed();
       buildRecap(room).then((data) => {
         if (room.recap?.version !== version) return;
-        room.recap = { ...room.recap, status: data.items.length ? 'ready' : 'empty', data, idx: 0 };
+        room.recap = { ...room.recap, status: data.items.length ? 'ready' : 'empty', data };
         room.changed();
       }).catch((err) => {
         console.error('[Rückblick]', err);
@@ -228,20 +227,6 @@ export function handleOp(room, by, a) {
       });
       break;
     }
-    case 'recapGo': {
-      if (!room.recap?.data) throw new Error('Kein Rückblick vorhanden.');
-      const max = room.recap.data.items.length + 1; // 0 = Intro, 1..n = Highlights, n+1 = Auszeichnungen
-      room.recap.idx = Math.max(0, Math.min(max, Number(a.idx) || 0));
-      room.recap.open = true;
-      break;
-    }
-    case 'recapOpen':
-      if (!room.recap?.data) throw new Error('Kein Rückblick vorhanden.');
-      room.recap.open = true;
-      break;
-    case 'recapClose':
-      if (room.recap) room.recap.open = false;
-      break;
     case 'recapReset':
       room.moments = [];
       room.loud = [];

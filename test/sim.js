@@ -283,9 +283,8 @@ if (host.st.screen === 'results') {
   const full = await host.emit('recap:get');
   log('Rückblick:', host.st.recap?.status, '·', full?.items?.length || 0, 'Highlights ·', (full?.awards || []).map((x) => `${x.icon} ${x.title}: ${x.name}`).join(', '));
   for (const it of (full?.items || []).slice(0, 4)) log('  ', it.kind, '|', it.caption, '|', it.text);
-  await opx('recapGo', { idx: 1 });
-  await sleep(300);
-  if (!host.st.recap?.item) log('⚠️ Folie fehlt im Zustand');
+  for (const r of full?.roasts || []) log('  🔥', r.name, '–', r.line);
+  if (!full?.roasts?.length) log('⚠️ Kein Urteil');
 }
 for (const b of bots) b.s.close();
 server.kill();

@@ -538,17 +538,8 @@ export class Room {
       tutorial: this.tutorial,
       moments: this.moments.length,
       recording: this.recording,
-      recap: this.recap ? {
-        status: this.recap.status,
-        open: this.recap.open,
-        idx: this.recap.idx,
-        count: this.recap.data?.items.length || 0,
-        // Nur die gerade gezeigte Folie mitschicken – den Rest holt sich, wer ihn braucht (recap:get)
-        item: this.recap.open && this.recap.data ? this.recap.data.items[this.recap.idx - 1] || null : null,
-        intro: this.recap.open && this.recap.data && this.recap.idx === 0 ? { games: this.recap.data.games, players: this.recap.data.players, count: this.recap.data.items.length } : null,
-        awards: this.recap.open && this.recap.data && this.recap.idx > this.recap.data.items.length ? this.recap.data.awards : null,
-        version: this.recap.version,
-      } : null,
+      // Das Video entsteht beim Operator – hier nur der Stand (Inhalt per recap:get)
+      recap: this.recap ? { status: this.recap.status, count: this.recap.data?.items.length || 0, version: this.recap.version } : null,
       waiting: this.waiting ? { label: this.waiting.label } : null,
       reveal: this.reveal ? { key: this.reveal.key, shown: this.reveal.shown, ordered: this.reveal.ordered, done: this.reveal.done, total: this.reveal.ids.length } : null,
       nextLabel: this.timers.has('phase') ? this.waitLabel || null : null,
