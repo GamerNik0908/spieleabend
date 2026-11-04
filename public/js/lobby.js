@@ -2,6 +2,7 @@
 // für Bilder, All-Time-Score und Daten.
 import { html, useState, useEffect, useRef, op, session, toast, Avatar, teamStyle, playerMap, GameIcon } from './lib.js';
 import { TvButton } from './tv.js';
+import { RecapPanel } from './recap.js';
 
 export const GAME_INFO = {
   quizduell: {
@@ -306,6 +307,7 @@ function GameSetup({ st }) {
       ${isOp && html`<div style="margin-top:14px"><${RoomSwitches} st=${st} /></div>`}
     </div>
     <${Teams} st=${st} />
+    ${isOp && html`<${RecapPanel} st=${st} />`}
     ${warn && html`<div class="pill bad" style="align-self:flex-start">${warn}</div>`}
     ${isOp
       ? html`<div class="row wrap" style="gap:12px">

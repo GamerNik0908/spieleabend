@@ -2,6 +2,7 @@
 // z. B. auf Discord. Sie zeigt alles Öffentliche groß – ohne Eingabefelder und ohne Geheimnisse.
 import { html, useState, Avatar, GameIcon, AssetImg, play } from './lib.js';
 import { GAME_INFO } from './lobby.js';
+import { RecBadge } from './recap.js';
 
 export const TV = new URLSearchParams(location.search).get('tv') === '1';
 export const tvUrl = (code) => `${location.origin}/?raum=${code}&tv=1`;
@@ -23,6 +24,7 @@ export function TvBar({ st }) {
     <span class="tv-join">Mitspielen: <b>${join}</b></span>
     <div class="spacer"></div>
     ${st.screen === 'game' && st.game && html`<span class="tv-game"><${GameIcon} id=${st.game.type} size=${26} /> ${GAME_INFO[st.game.type]?.title}</span>`}
+    <${RecBadge} st=${st} />
     ${op && html`<span class="muted small nowrap">👑 ${op.name}</span>`}
     <span class="code-chip">${st.code}</span>
   </div>`;

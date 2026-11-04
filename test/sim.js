@@ -274,6 +274,19 @@ while (Date.now() - t0 < 6 * 60e3) {
 }
 if (host.st.screen !== 'results') log('⚠️ Kein Ergebnis nach Zeitlimit. Phase:', host.st.game?.phase);
 log('Einblendungen gesamt:', announcements.length, '· Weiter-Klicks:', advances);
+// Highlight-Rückblick bauen und prüfen
+if (host.st.screen === 'results') {
+  log('Momente gesammelt:', host.st.moments);
+  await opx('loud', { t: Date.now() - 20000, level: 2 });
+  await opx('recapBuild');
+  for (let i = 0; i < 40 && !['ready', 'empty', 'error'].includes(host.st.recap?.status); i++) await sleep(250);
+  const full = await host.emit('recap:get');
+  log('Rückblick:', host.st.recap?.status, '·', full?.items?.length || 0, 'Highlights ·', (full?.awards || []).map((x) => `${x.icon} ${x.title}: ${x.name}`).join(', '));
+  for (const it of (full?.items || []).slice(0, 4)) log('  ', it.kind, '|', it.caption, '|', it.text);
+  await opx('recapGo', { idx: 1 });
+  await sleep(300);
+  if (!host.st.recap?.item) log('⚠️ Folie fehlt im Zustand');
+}
 for (const b of bots) b.s.close();
 server.kill();
 fs.rmSync(DATA, { recursive: true, force: true });

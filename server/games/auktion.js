@@ -1,7 +1,7 @@
 // „Wissens-Auktion“: Zuerst sieht man nur die Kategorie. Jedes Team bietet geheim Punkte
 // darauf, dass es die Frage lösen kann (Absprache im Team-Chat). Das höchste Gebot muss
 // antworten: richtig = Gebot dazu, falsch = Gebot weg. Wissen trifft Selbstüberschätzung.
-import { Game, judgeSingle, shuffle } from './base.js';
+import { Game, judgeSingle, shuffle, answerScore } from './base.js';
 import * as store from '../store.js';
 import { QUIZ_CATEGORIES } from '../data/index.js';
 
@@ -115,6 +115,10 @@ export class Auktion extends Game {
     }
     this.applyResult(res.ok, res.by);
     this.phase = 'result';
+    {
+      const t = this.team(this.winner);
+      this.room.moment('auction', { pids: t ? t.members : [], q: `${this.q.cat}: ${this.q.q}`, a: this.q.a, text: text || '(keine Antwort)', ok: res.ok, note: `${t?.name} setzt ${this.stake}`, score: this.stake >= 500 ? 4 : res.ok ? 1 : answerScore(text, false), tags: [this.stake >= 500 ? 'drama' : res.ok ? 'schlau' : 'lustig'] });
+    }
     this.room.fx(res.ok ? 'correct' : 'wrong');
     this.room.step(5000, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Auktion');
     this.changed();

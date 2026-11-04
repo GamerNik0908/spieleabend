@@ -24,6 +24,7 @@ import { VerhoerView } from './games/verhoer.js';
 import { AuktionView } from './games/auktion.js';
 import { ZeitstrahlView } from './games/zeitstrahl.js';
 import { EmojiView } from './games/emoji.js';
+import { RecapOverlay, RecBadge } from './recap.js';
 
 // ---------- Socket-Verdrahtung ----------
 socket.on('connect', async () => {
@@ -221,6 +222,7 @@ function TopBar({ st }) {
     <div class="logo"><span class="dice"><${AssetImg} src="/assets/logo.webp" fallback="🎲" /></span><span class="txt">Spieleabend</span></div>
     <span class="code-chip" title="Einladungslink kopieren" onClick=${copy}>${st.code}</span>
     <span class=${`dot ${connected ? '' : 'off'}`} title=${connected ? 'Verbunden' : 'Getrennt – verbinde neu …'}></span>
+    <${RecBadge} st=${st} />
     ${st.ai && html`<span class="pill op small" title="Antworten, die die normale Erkennung nicht versteht, prüft eine KI">🤖 KI-Richter${st.aiName ? ` (${st.aiName})` : ''}</span>`}
     <div class="spacer"></div>
     <span class="muted small nowrap">${st.me.name}${st.me.isOperator ? ' 👑' : ''}</span>
@@ -249,6 +251,7 @@ function Room({ st }) {
     ${!st.me.isOperator && st.waiting && st.screen === 'game' && html`<div class="wait-op">⏳ ${st.players.find((p) => p.isOperator)?.name || 'Der Operator'} schaltet gleich weiter …</div>`}
     <${PauseScreen} st=${st} />
     <${TutorialOverlay} st=${st} />
+    <${RecapOverlay} st=${st} />
   </div>`;
 }
 
@@ -265,6 +268,7 @@ function TvRoom({ st }) {
     ${st.waiting && st.screen === 'game' && html`<div class="wait-op">⏳ ${st.players.find((p) => p.isOperator)?.name || 'Der Operator'} schaltet gleich weiter …</div>`}
     <${PauseScreen} st=${st} />
     <${TutorialOverlay} st=${st} />
+    <${RecapOverlay} st=${st} />
   </div>`;
 }
 

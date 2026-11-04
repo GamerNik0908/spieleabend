@@ -108,6 +108,17 @@ export class Luegenbaron extends SoloGame {
     this.result = { delta: {} };
     this.rescore();
     this.phase = 'reveal';
+    {
+      const count = (o) => Object.values(this.votes).filter((v) => v === o.id).length;
+      const fact = this.q.q.replace('___', '…');
+      for (const o of this.options.filter((x) => !x.truth && !x.house && count(x) > 0)) {
+        this.room.moment('lie', { pids: o.authors, q: fact, a: this.q.a, text: o.text, note: `${count(o)} reingefallen`, extra: { fooled: count(o) }, score: 1 + 2 * count(o), tags: ['lustig'] });
+      }
+      const truth = this.options.find((x) => x.truth);
+      if (truth && count(truth) === 0 && Object.keys(this.votes).length >= 2) {
+        this.room.moment('lie', { pids: [], q: fact, a: this.q.a, text: this.q.a, note: 'Niemand hat die Wahrheit gefunden', extra: { fooled: 0 }, score: 3, tags: ['drama'] });
+      }
+    }
     // Lügen mit Stimmen zuerst, die Wahrheit zum Schluss
     const voted = (o) => Object.values(this.votes).filter((v) => v === o.id).length;
     this.revealOrder = [

@@ -143,6 +143,11 @@ export class Spion extends SoloGame {
 
   finishRound(caught, why) {
     this.applyRound(caught, why);
+    const spyClues = this.clues.filter((c) => c.pid === this.spy).map((c) => c.text).join(', ');
+    this.room.moment('spy', {
+      pids: [this.spy], q: `Geheimes Wort: ${this.word} (${this.cat})`, text: spyClues ? `Hinweise des Spions: ${spyClues}` : why,
+      note: `${why}${this.guess ? ` – geraten: „${this.guess}“` : ''}`, extra: { caught }, score: caught ? 3 : 4, tags: [caught ? 'cool' : 'drama'],
+    });
     this.phase = 'result';
     this.room.fx(caught ? 'win-round' : 'lose');
     this.room.step(7000, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Runde');

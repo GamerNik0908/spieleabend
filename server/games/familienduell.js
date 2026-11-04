@@ -2,7 +2,7 @@
 // Ablauf pro Runde: Buzzer-Duell -> Team mit Kontrolle rät reihum (3 Fehler = Strikes)
 // -> anderes Team darf mit einer Antwort klauen. Danach Finale: pro Frage gibt jedes
 // Team geheim eine Antwort, Punkte = Prozentwert.
-import { Game, judgeAmong, drawFresh } from './base.js';
+import { Game, judgeAmong, drawFresh, answerScore } from './base.js';
 import * as store from '../store.js';
 import { FAMILIENDUELL } from '../data/index.js';
 
@@ -124,6 +124,7 @@ export class FamilienDuell extends Game {
     const ok = index >= 0 && !dup;
     this.last = { id: ++this.seq, pid, teamId: team?.id, input, index, dup, ok, by, reason, phase: this.phase, strikeAdded: false };
     this.log.unshift(this.last);
+    if (this.q) this.room.moment('survey', { pids: [pid], q: this.q.q, a: ok ? this.q.a[index].t : null, text: input, ok, note: ok ? `${this.q.a[index].p} Punkte` : dup ? 'schon aufgedeckt' : 'nicht auf der Tafel', score: ok ? 1 : answerScore(input, false), tags: [ok ? 'schlau' : 'lustig'] });
     if (ok) {
       this.revealed[index] = team?.id || 'none';
       this.pot += this.q.a[index].p;

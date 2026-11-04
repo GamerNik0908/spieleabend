@@ -135,6 +135,12 @@ export class Gleichdenker extends Game {
       this.result[t.id] = r;
     }
     this.phase = 'reveal';
+    for (const t of this.teams) {
+      const r = this.result[t.id];
+      const answers = t.members.map((p) => this.answers[p]).filter(Boolean);
+      if (answers.length < 2) continue;
+      this.room.moment('match', { pids: t.members, q: this.q.q, text: answers.map((x) => `„${x}“`).join(' · '), note: `${t.name}: ${r.pts} ${r.pts === 1 ? 'Punkt' : 'Punkte'}`, extra: { pts: r.pts }, score: r.pts >= 3 ? 3 : r.best <= 1 && answers.length >= 3 ? 3 : 1, tags: [r.pts >= 3 ? 'cool' : 'lustig'] });
+    }
     const best = Math.max(...Object.values(this.result).map((r) => r.pts));
     this.room.fx(best >= 3 ? 'win' : best > 0 ? 'win-round' : 'wrong');
     // Alle Namen sichtbar, der Operator deckt per Klick (oder Weiter) Spieler für Spieler auf –

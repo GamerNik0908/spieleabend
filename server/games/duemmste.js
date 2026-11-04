@@ -2,7 +2,7 @@
 // den „Dümmsten“ – wer die meisten Stimmen hat, verliert ein Leben. Gleichstand = Stechen
 // (abwechselnd Fragen, bis einer falsch und der andere richtig liegt). Bleiben zwei übrig,
 // entscheidet das Finale im Stechen-Modus. Wer alle Leben verliert, fliegt.
-import { Game, judgeSingle, drawFresh, shuffle } from './base.js';
+import { Game, judgeSingle, drawFresh, shuffle, answerScore } from './base.js';
 import * as store from '../store.js';
 import { DUEMMSTE } from '../data/index.js';
 
@@ -127,6 +127,7 @@ export class Duemmste extends Game {
       context: this.duel ? 'duel' : 'round',
     };
     this.last = entry;
+    this.room.moment('answer', { pids: [cur.pid], q: cur.q.q, a: cur.q.a, text: cur.input, ok, score: answerScore(cur.input, ok), tags: [ok ? 'schlau' : 'lustig'] });
     this.feed.unshift(entry);
     this.feed = this.feed.slice(0, 40);
     if (this.duel) {

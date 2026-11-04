@@ -82,6 +82,17 @@ Setze solved=true nur, wenn die Frage den geheimen Begriff (oder ein echtes Syno
 ${RULES_INJECTION}
 Antworte nur im vorgegebenen JSON-Format.`;
 
+const HIGHLIGHT_SYSTEM = `Du bist Cutter und Kommentator für das Highlight-Video eines Spieleabends unter Freunden.
+Du bekommst eine Liste gesammelter Momente aus verschiedenen Partyspielen (Antworten, Lügen, Zeichnungen, Schätzungen …).
+Wähle die unterhaltsamsten Momente für einen Rückblick aus: vor allem lustige, absurde oder kreative falsche Antworten,
+starke Lügen, knappe Entscheidungen, Volltreffer und clevere Antworten. Achte auf Abwechslung zwischen Spielen und Personen.
+Momente mit loud=true waren im Raum besonders laut (vermutlich Gelächter) – die sind meist gute Kandidaten.
+Gib jedem gewählten Moment:
+- tag: "lustig", "schlau", "cool" oder "drama"
+- caption: einen kurzen, witzigen Kommentar auf Deutsch (max. 90 Zeichen), freundlich frotzelnd, nie beleidigend oder gemein
+${RULES_INJECTION}
+Antworte nur im vorgegebenen JSON-Format.`;
+
 const Verdict = z.object({
   match: z.number().int().describe('Index der passenden Lösung, oder -1 wenn keine passt'),
   reason: z.string().describe('Sehr kurze Begründung auf Deutsch'),
@@ -105,6 +116,23 @@ const AskAnswerGemini = {
     solved: { type: 'BOOLEAN' },
   },
   required: ['answer', 'solved'],
+};
+const Highlights = z.object({
+  picks: z.array(z.object({ id: z.string(), tag: z.enum(['lustig', 'schlau', 'cool', 'drama']), caption: z.string() })),
+});
+const HighlightsGemini = {
+  type: 'OBJECT',
+  properties: {
+    picks: {
+      type: 'ARRAY',
+      items: {
+        type: 'OBJECT',
+        properties: { id: { type: 'STRING' }, tag: { type: 'STRING', enum: ['lustig', 'schlau', 'cool', 'drama'] }, caption: { type: 'STRING' } },
+        required: ['id', 'tag', 'caption'],
+      },
+    },
+  },
+  required: ['picks'],
 };
 const Groups = z.object({
   groups: z.array(z.array(z.number().int())).describe('Gruppen von Antwort-Nummern, die dasselbe meinen'),
@@ -200,13 +228,34 @@ Frage des Spielers: """${String(question).slice(0, 160)}"""`;
   return remember(key, { answer: parsed.answer, solved: !!parsed.solved });
 }
 
+/**
+ * Wählt Highlights für den Rückblick aus und kommentiert sie.
+ * moments: [{ id, game, kind, context, text, extra, loud }] → [{ id, tag, caption }] oder null
+ */
+export async function aiHighlights({ moments, max = 14 }) {
+  if (!PROVIDER || !moments.length) return null;
+  // Läuft einmal pro Abend und umgeht deshalb das Minutenlimit
+  const list = moments.map((m) => [m.id, m.game, m.kind, m.context, m.text, m.extra, m.loud ? 'loud=true' : '']
+    .map((x) => String(x || '').replace(/\s+/g, ' ').slice(0, 140)).join(' | ')).join('\n');
+  const content = `Wähle bis zu ${max} Momente (mindestens ${Math.min(6, moments.length)}).
+Format je Zeile: id | Spiel | Art | Kontext/Frage | Text/Antwort | Zusatz | laut
+${list}`;
+  const parsed = PROVIDER === 'gemini'
+    ? await askGemini(HIGHLIGHT_SYSTEM, content, HighlightsGemini, 4000, 60000)
+    : await askClaude(HIGHLIGHT_SYSTEM, content, Highlights, 60000);
+  if (!parsed || !Array.isArray(parsed.picks)) return null;
+  const ids = new Set(moments.map((m) => String(m.id)));
+  const seen = new Set();
+  return parsed.picks.filter((p) => ids.has(String(p.id)) && !seen.has(String(p.id)) && seen.add(String(p.id))).slice(0, max);
+}
+
 async function ask(system, content, zodSchema, geminiSchema, maxTokens = 400) {
   return PROVIDER === 'gemini'
     ? askGemini(system, content, geminiSchema, maxTokens)
     : askClaude(system, content, zodSchema);
 }
 
-async function askClaude(system, content, schema) {
+async function askClaude(system, content, schema, timeout = TIMEOUT_MS) {
   const base = { model: MODEL, max_tokens: 4000, system, messages: [{ role: 'user', content }] };
   try {
     const res = await client.beta.messages.parse({
@@ -214,13 +263,13 @@ async function askClaude(system, content, schema) {
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       output_config: { effort: 'low', format: betaZodOutputFormat(schema) },
-    });
+    }, { timeout });
     return res.stop_reason === 'refusal' ? null : res.parsed_output;
   } catch (err) {
     if (err instanceof Anthropic.BadRequestError) {
       // Fallback ohne Beta-Features (z. B. auf Plattformen ohne server-side fallbacks)
       try {
-        const res = await client.messages.parse({ ...base, output_config: { effort: 'low', format: zodOutputFormat(schema) } });
+        const res = await client.messages.parse({ ...base, output_config: { effort: 'low', format: zodOutputFormat(schema) } }, { timeout });
         return res.stop_reason === 'refusal' ? null : res.parsed_output;
       } catch (err2) {
         logError(err2);
@@ -233,7 +282,7 @@ async function askClaude(system, content, schema) {
 }
 
 // Google Gemini über die REST-API (generateContent) mit JSON-Antwortschema
-async function askGemini(system, content, schema, maxTokens) {
+async function askGemini(system, content, schema, maxTokens, timeout = TIMEOUT_MS) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent`;
   const body = {
     systemInstruction: { parts: [{ text: system }] },
@@ -245,7 +294,7 @@ async function askGemini(system, content, schema, maxTokens) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': GEMINI_KEY },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeout),
     });
     if (!res.ok) {
       const text = await res.text().catch(() => '');

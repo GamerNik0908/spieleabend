@@ -333,3 +333,22 @@ body[data-game="gleichdenker"] { --accent: #3ad08a; }
 .tv-player.off { opacity: .4; }
 .tv-start { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; background: rgba(8,6,16,.88); cursor: pointer; padding: 16px; }
 .tv-start .card { max-width: 560px; }
+
+/* ---------- Highlights & Rückblick ---------- */
+.recap-panel { display: flex; flex-direction: column; gap: 10px; border-color: rgba(245,196,81,.35); }
+.recap-rec { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 8px; border-top: 1px dashed var(--line); }
+.recap-ask { padding: 12px; border-radius: 14px; background: rgba(255,90,110,.07); border: 1px solid rgba(255,90,110,.35); display: flex; flex-direction: column; gap: 6px; }
+.recap-ask label { font-size: 14px; align-items: flex-start; }
+.rec-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #ff4d5e; box-shadow: 0 0 0 0 rgba(255,77,94,.6); animation: recpulse 1.4s infinite; }
+@keyframes recpulse { 0% { box-shadow: 0 0 0 0 rgba(255,77,94,.6); } 70% { box-shadow: 0 0 0 8px rgba(255,77,94,0); } 100% { box-shadow: 0 0 0 0 rgba(255,77,94,0); } }
+.rec-meter { width: 120px; height: 8px; border-radius: 6px; background: rgba(255,255,255,.08); overflow: hidden; }
+.rec-meter i { display: block; height: 100%; background: linear-gradient(90deg, #3ad08a, #f5c451, #ff4d5e); transition: width .15s; }
+.rec-badge { display: inline-flex; align-items: center; gap: 6px; }
+.recap-back { position: fixed; inset: 0; z-index: 150; background: rgba(5,3,10,.92); display: grid; place-items: center; padding: 16px; }
+.recap-box { width: min(1280px, 100%); display: flex; flex-direction: column; gap: 12px; align-items: center; }
+.recap-canvas { width: 100%; height: auto; aspect-ratio: 16 / 9; border-radius: 18px; box-shadow: 0 30px 90px rgba(0,0,0,.6); background: #07050e; }
+.recap-ctrl { justify-content: center; gap: 8px; }
+.recap-msg { padding: 40px; max-width: 640px; }
+.spinner { width: 42px; height: 42px; margin: 16px auto 0; border-radius: 50%; border: 4px solid rgba(255,255,255,.12); border-top-color: var(--gold); animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.tv .recap-ctrl .btn:not(.sm) { display: none; }

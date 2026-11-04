@@ -1,7 +1,7 @@
 // „Montagsmaler“: Einer zeichnet, alle anderen raten per Tippen. Wer schneller rät,
 // bekommt mehr Punkte; der Zeichner bekommt Punkte für jeden, der es errät.
 // Mit der Zeit werden Buchstaben als Tipp aufgedeckt.
-import { SoloGame, drawFresh, shuffle, judgeSingle } from './base.js';
+import { SoloGame, drawFresh, shuffle, judgeSingle, shrinkDrawing } from './base.js';
 import { matchAnswer, normalize, editDistance } from '../matcher.js';
 import * as store from '../store.js';
 import { MONTAGSMALER } from '../data/index.js';
@@ -181,6 +181,15 @@ export class Montagsmaler extends SoloGame {
     for (const k of ['draw', 'hint1', 'hint2']) this.room.clearTimer(k);
     this.phase = 'reveal';
     this.reason = reason;
+    if (this.word && this.strokes.length) {
+      const guessers = Object.keys(this.guessed);
+      const wrong = [...new Set(this.chat.filter((c) => c.kind === 'guess').map((c) => c.text))].slice(-4);
+      this.room.moment('drawing', {
+        pids: [this.drawer], text: this.word.w, q: `${this.name(this.drawer)} zeichnet`,
+        note: guessers.length ? `Erraten von ${guessers.map((p) => this.name(p)).join(', ')}` : `Niemand hat es erraten${wrong.length ? ` – Tipps: ${wrong.join(', ')}` : ''}`,
+        extra: { guessers: guessers.length, wrong }, drawing: shrinkDrawing(this.strokes), score: guessers.length ? 3 : 4, tags: [guessers.length ? 'cool' : 'lustig'],
+      });
+    }
     this.room.fx(Object.keys(this.guessed).length ? 'win-round' : 'wrong');
     this.room.step(5000, () => this.nextTurn(), this.turnIdx + 1 >= this.queue.length ? 'Zum Ergebnis' : 'Nächstes Bild');
     this.changed();

@@ -1,7 +1,7 @@
 // „Quiz Duell“ (Jeopardy-Stil): Spielbrett mit 6 Kategorien. Das Team am Zug wählt ein Feld,
 // ein Teammitglied (reihum) tippt die Antwort. Liegt es falsch, dürfen die anderen Teams
 // buzzern und klauen. Zwei Runden, in Runde 2 zählen die Felder doppelt.
-import { Game, judgeSingle, shuffle } from './base.js';
+import { Game, judgeSingle, shuffle, answerScore } from './base.js';
 import * as store from '../store.js';
 import { QUIZ_CATEGORIES } from '../data/index.js';
 
@@ -163,6 +163,7 @@ export class QuizDuell extends Game {
     }
     const entry = { id: ++this.seq, pid, teamId: team.id, input: text, ok, by, reason, value: cur.value, penalty, stage, q: cur.q.q, a: cur.q.a, cell: [cur.col, cur.row] };
     cur.attempts.push(entry);
+    this.room.moment('answer', { pids: [pid], q: cur.q.q, a: cur.q.a, text, ok, score: answerScore(text, ok, cur.value), tags: [ok ? 'schlau' : 'lustig'] });
     this.log.unshift(entry);
     this.log = this.log.slice(0, 50);
     this.room.typing = null;

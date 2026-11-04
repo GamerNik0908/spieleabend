@@ -87,6 +87,11 @@ export class EmojiKino extends SoloGame {
     this.room.clearTimer('answer');
     this.room.clearTimer('hint');
     this.phase = 'reveal';
+    {
+      const wrong = [...new Set(this.chat.filter((c) => c.kind === 'guess').map((c) => c.text))];
+      const first = Object.entries(this.solved).sort((a, b) => a[1].rank - b[1].rank)[0];
+      this.room.moment('emoji', { pids: first ? [first[0]] : [], q: `${this.r.e}  (${this.r.cat})`, a: this.r.a, text: wrong.length ? wrong.slice(-4).join(' · ') : this.r.a, note: first ? `Als Erste(r): ${this.name(first[0])}` : 'Niemand hat es erkannt', score: wrong.length >= 3 ? 3 : first ? 1 : 2, tags: [wrong.length ? 'lustig' : 'schlau'] });
+    }
     this.room.fx(Object.keys(this.solved).length ? 'win-round' : 'lose');
     this.room.step(4500, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächstes Rätsel');
     this.changed();

@@ -1,6 +1,7 @@
 // Alle Operator-Aktionen. Jede spürbare Änderung wird groß für alle eingeblendet.
 import * as store from './store.js';
 import { GAMES } from './room.js';
+import { buildRecap } from './highlights.js';
 
 const OPTION_LIMITS = {
   quizduell: {
@@ -208,6 +209,59 @@ export function handleOp(room, by, a) {
       if (r.ordered && a.id != null && r.ids.find((x) => !r.shown.includes(x)) !== String(a.id)) throw new Error('Hier wird der Reihe nach aufgedeckt – drück auf Weiter.');
       room.revealOne(a.id);
       break;
+    }
+    // ---------- Highlights & Rückblick ----------
+    case 'recapBuild': {
+      if (room.recap?.status === 'building') throw new Error('Der Rückblick wird schon erstellt …');
+      if (room.moments.length < 3) throw new Error('Noch zu wenig passiert – spielt erst eine Runde!');
+      const version = (room.recap?.version || 0) + 1;
+      room.recap = { status: 'building', open: true, idx: 0, data: null, version };
+      room.announce('🎬 Der Rückblick wird geschnitten …', 'start', 'Die besten Momente des Abends');
+      room.changed();
+      buildRecap(room).then((data) => {
+        if (room.recap?.version !== version) return;
+        room.recap = { ...room.recap, status: data.items.length ? 'ready' : 'empty', data, idx: 0 };
+        room.changed();
+      }).catch((err) => {
+        console.error('[Rückblick]', err);
+        if (room.recap?.version === version) { room.recap.status = 'error'; room.changed(); }
+      });
+      break;
+    }
+    case 'recapGo': {
+      if (!room.recap?.data) throw new Error('Kein Rückblick vorhanden.');
+      const max = room.recap.data.items.length + 1; // 0 = Intro, 1..n = Highlights, n+1 = Auszeichnungen
+      room.recap.idx = Math.max(0, Math.min(max, Number(a.idx) || 0));
+      room.recap.open = true;
+      break;
+    }
+    case 'recapOpen':
+      if (!room.recap?.data) throw new Error('Kein Rückblick vorhanden.');
+      room.recap.open = true;
+      break;
+    case 'recapClose':
+      if (room.recap) room.recap.open = false;
+      break;
+    case 'recapReset':
+      room.moments = [];
+      room.loud = [];
+      room.recap = null;
+      room.opAnnounce(by, 'startet einen neuen Abend – alle Highlights wurden gelöscht');
+      break;
+    case 'recording':
+      room.recording = !!a.on;
+      if (room.recording) {
+        room.recordedOnce = true;
+        room.announce('🔴 Ton-Aufnahme läuft', 'op', 'Nur auf dem PC des Operators – für das Highlight-Video');
+      } else room.announce('⏹ Ton-Aufnahme beendet', 'op');
+      break;
+    case 'loud': {
+      // Laute Stelle (meist Gelächter) aus der Aufnahme des Operators – nur Zeitpunkt und Stärke
+      const t = Number(a.t);
+      if (!Number.isFinite(t) || Math.abs(t - Date.now()) > 60000) throw new Error('Ungültiger Zeitpunkt');
+      room.loud.push({ t, level: Math.max(0, Math.min(3, Number(a.level) || 1)), game: room.game ? room.gameType : null });
+      if (room.loud.length > 400) room.loud.shift();
+      return; // kein Neuzeichnen nötig
     }
     case 'advance':
       if (!room.advance()) throw new Error('Gerade gibt es nichts zum Weiterschalten.');

@@ -190,6 +190,16 @@ export class Verhoer extends Game {
     this.win = win;
     this.why = why;
     this.phase = 'result';
+    {
+      const asked = this.questions.filter((q) => !q.solve);
+      const funny = this.questions.filter((q) => q.solve && q.answer === 'falsch').map((q) => q.text).slice(-3);
+      this.room.moment('interrogation', {
+        pids: win ? [win.pid] : [], q: `Gesucht: ${this.secret.a} (${this.secret.cat})`,
+        text: win ? `Gelöst mit ${win.how} nach ${asked.length} Fragen` : `Nicht gelöst nach ${asked.length} Fragen`,
+        note: funny.length ? `Falsch geraten: ${funny.join(', ')}` : '', extra: { solved: !!win, asked: asked.length },
+        score: win && asked.length <= 6 ? 4 : funny.length ? 3 : 2, tags: [win ? 'schlau' : 'drama'],
+      });
+    }
     this.room.fx(win ? 'win' : 'lose');
     this.room.announce(win ? `🎉 ${why}` : `🤖 ${why}`, win ? 'win' : 'op', `Gesucht war: ${this.secret.a}`);
     this.room.step(6000, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächster Begriff');

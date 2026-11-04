@@ -116,6 +116,10 @@ export class Werwars extends SoloGame {
     this.result = null;
     this.score();
     this.phase = 'reveal';
+    for (const e of this.list) {
+      const { right, wrong } = this.result.perAnswer[e.id];
+      this.room.moment('secret', { pids: [e.pid], q: this.q.q, text: e.text, note: right.length ? `erkannt von ${right.map((p) => this.name(p)).join(', ')}` : 'niemand hat es erkannt', score: 2 + (right.length ? 0 : Math.min(2, wrong.length)), tags: ['lustig'] });
+    }
     this.room.startReveal(`ww-${this.round}`, this.list.map((e) => e.id), { ordered: false, autoMs: 2200 }, () => {
       this.room.step(3000, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Frage');
     });

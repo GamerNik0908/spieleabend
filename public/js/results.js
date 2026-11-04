@@ -1,6 +1,7 @@
 // Ergebnis-Bildschirm: Plätze werden von hinten nach vorne aufgedeckt, der Sieger zuletzt.
 import { html, op, useEffect, useRef, useLocalStagger, play, confetti } from './lib.js';
 import { Leaderboard } from './lobby.js';
+import { RecapPanel } from './recap.js';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -55,6 +56,7 @@ export function Results({ st }) {
       })}
     </div>
     ${done && html`<div class="card"><h3>🏆 All-Time-Rangliste</h3><${Leaderboard} st=${st} limit=${15} /></div>`}
+    ${isOp && done && html`<${RecapPanel} st=${st} />`}
     ${isOp ? html`<div class="row" style="justify-content:center">
       <button class="btn primary lg" onClick=${() => op('lobby')}>Zurück zur Lobby</button>
       <button class="btn lg" onClick=${() => op('start')}>🔁 Nochmal spielen</button>

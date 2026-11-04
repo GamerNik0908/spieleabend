@@ -57,6 +57,15 @@ export class Schaetzen extends SoloGame {
     const list = this.score();
     this.phase = 'reveal';
     this.room.fx(list.some((e) => e.bullseye) ? 'win' : 'reveal');
+    {
+      const a = this.q.a;
+      const unit = this.q.unit ? ` ${this.q.unit}` : '';
+      const best = list[0];
+      if (best) this.room.moment('estimate', { pids: [best.pid], q: this.q.q, a: `${a}${unit}`, text: `${best.value}${unit}`, note: best.bullseye ? 'Volltreffer!' : 'am nächsten dran', extra: { bullseye: !!best.bullseye }, score: best.bullseye ? 5 : 1, tags: ['schlau'] });
+      const worst = list[list.length - 1];
+      const ratio = worst && a ? Math.max(worst.value / a, a / Math.max(worst.value, 1e-9)) : 0;
+      if (worst && list.length > 1 && ratio >= 3) this.room.moment('estimate', { pids: [worst.pid], q: this.q.q, a: `${a}${unit}`, text: `${worst.value}${unit}`, note: `${Math.round(ratio)}× daneben`, extra: { off: ratio }, score: ratio >= 10 ? 5 : 3, tags: ['lustig'] });
+    }
     // Lösung zuerst, dann Schätzungen vom schlechtesten zum besten – Weiter deckt den Nächsten auf
     this.room.startReveal(`es-${this.round}`, [...list].reverse().map((e) => e.pid), { ordered: true, autoMs: 1400 }, () => {
       this.room.step(2500, () => this.nextRound(), this.round >= this.opts.rounds ? 'Zum Ergebnis' : 'Nächste Frage');

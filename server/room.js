@@ -60,6 +60,14 @@ export class Room {
     this.timers = new Map();
     this.results = null;
     this.tutorial = null; // { game, step } – vom Operator gesteuerte Erklär-Folien
+    // Highlights des Abends: Momente aus allen Spielen, laute Stellen (Lacher) aus der Ton-Aufnahme
+    this.moments = [];
+    this.momentSeq = 0;
+    this.loud = [];
+    this.pastNames = {};
+    this.recording = false; // Operator nimmt gerade Ton auf (nur auf seinem PC)
+    this.recordedOnce = false;
+    this.recap = null; // { status, open, idx, data }
     this.aiOn = true; // KI-Richter für diesen Raum (falls ein Key gesetzt ist)
     this.manualAdvance = true; // Operator klickt „Weiter“ statt automatischem Weiterspringen
     this.revealSeq = true; // Antworten Spieler für Spieler aufdecken (statt alle gleichzeitig)
@@ -134,6 +142,7 @@ export class Room {
   removePlayer(pid) {
     const p = this.players.get(pid);
     if (!p) return;
+    this.pastNames[pid] = p.name; // für den Rückblick
     for (const sid of p.sockets) {
       const s = this.io.sockets.sockets.get(sid);
       if (s) { s.emit('kicked'); s.leave(this.code); s.data.room = null; }
@@ -370,6 +379,22 @@ export class Room {
 
   opAnnounce(by, text, sub = '', extra = {}) {
     this.announce(`${this.name(by)} ${text}`, 'op', sub, { operator: true, ...extra });
+    // Korrekturen mitten im Spiel sind oft die besten Geschichten des Abends
+    if (this.game && !/extra|Sekunden|springt|weiter|beendet|deckt|löst/.test(text)) {
+      this.moment('fix', { pids: [by], text: `${this.name(by)} ${text}`, note: sub, score: 2, tags: ['drama'] });
+    }
+  }
+
+  /** Ein Spiel meldet einen möglichen Highlight-Moment (siehe highlights.js) */
+  moment(kind, data = {}) {
+    const def = GAMES[this.gameType];
+    this.moments.push({ id: ++this.momentSeq, t: Date.now(), game: this.gameType, title: def?.title, kind, ...data });
+    if (this.moments.length > 3000) {
+      // Bei sehr langen Abenden die unwichtigsten Momente vergessen
+      const keep = [...this.moments].sort((a, b) => (b.score || 0) - (a.score || 0)).slice(0, 2500);
+      const ids = new Set(keep.map((m) => m.id));
+      this.moments = this.moments.filter((m) => ids.has(m.id));
+    }
   }
 
   // Nachricht nur an einen Spieler (alle seine Tabs)
@@ -417,6 +442,11 @@ export class Room {
       lastScore = u.score;
     });
     sorted.sort((a, b) => a.rank - b.rank);
+    if (sorted[0]) {
+      const winners = sorted.filter((u) => u.rank === 1).map((u) => u.label).join(' & ');
+      const pids = [...this.players.values()].filter((p) => sorted.filter((u) => u.rank === 1).some((u) => u.profileIds?.includes(p.profileId))).map((p) => p.id);
+      this.moment('win', { pids, text: `${winners} gewinnt ${GAMES[this.gameType]?.title}!`, note: `${sorted[0].score} Punkte`, score: 3, tags: ['cool'] });
+    }
     const awarded = store.recordGame(this.gameType, sorted);
     this.results = {
       game: this.gameType,
@@ -506,6 +536,19 @@ export class Room {
       teamStyles: TEAM_STYLES,
       results: this.results,
       tutorial: this.tutorial,
+      moments: this.moments.length,
+      recording: this.recording,
+      recap: this.recap ? {
+        status: this.recap.status,
+        open: this.recap.open,
+        idx: this.recap.idx,
+        count: this.recap.data?.items.length || 0,
+        // Nur die gerade gezeigte Folie mitschicken – den Rest holt sich, wer ihn braucht (recap:get)
+        item: this.recap.open && this.recap.data ? this.recap.data.items[this.recap.idx - 1] || null : null,
+        intro: this.recap.open && this.recap.data && this.recap.idx === 0 ? { games: this.recap.data.games, players: this.recap.data.players, count: this.recap.data.items.length } : null,
+        awards: this.recap.open && this.recap.data && this.recap.idx > this.recap.data.items.length ? this.recap.data.awards : null,
+        version: this.recap.version,
+      } : null,
       waiting: this.waiting ? { label: this.waiting.label } : null,
       reveal: this.reveal ? { key: this.reveal.key, shown: this.reveal.shown, ordered: this.reveal.ordered, done: this.reveal.done, total: this.reveal.ids.length } : null,
       nextLabel: this.timers.has('phase') ? this.waitLabel || null : null,

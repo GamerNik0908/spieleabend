@@ -53,6 +53,24 @@ export async function judgeAmong(question, options, input, { ai = true } = {}) {
   return { index: -1, by: r ? 'ki' : 'auto', reason: r?.reason };
 }
 
+/**
+ * Wie „highlight-würdig“ ist eine getippte Antwort? Falsche, kreative Antworten sind oft
+ * die lustigsten Momente des Abends; „weiß nicht“ und leere Antworten zählen nicht.
+ */
+export function answerScore(text, ok, value = 0) {
+  const t = String(text || '').trim().toLowerCase();
+  if (!t || t.length < 2 || /^(\?+|weiß nicht|weiss nicht|keine ahnung|k\.?a\.?|idk|pass|nix|nichts|-+|\.+)$/.test(t)) return 0;
+  if (ok) return value >= 300 ? 2 : 1;
+  return t.length >= 4 ? 3 : 2;
+}
+
+/** Zeichnung für den Rückblick verkleinern (höchstens ~1500 Punkte) */
+export function shrinkDrawing(strokes) {
+  const total = strokes.reduce((n, s) => n + (s.p?.length || 0), 0);
+  const step = Math.max(1, Math.ceil(total / 1500));
+  return strokes.map((s) => ({ c: s.c, w: s.w, p: (s.p || []).filter((_, i, arr) => i % step === 0 || i === arr.length - 1).map(([x, y]) => [Math.round(x * 1000) / 1000, Math.round(y * 1000) / 1000]) }));
+}
+
 export class Game {
   constructor(room, opts, teams) {
     this.room = room;

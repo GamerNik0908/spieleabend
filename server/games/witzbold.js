@@ -152,6 +152,13 @@ export class Witzbold extends SoloGame {
       this.scores[pid] += pts;
     });
     p.counts = counts;
+    {
+      const win = counts[0] === counts[1] ? -1 : counts[0] > counts[1] ? 0 : 1;
+      if (win >= 0 && p.answers[p.sides[win]]) {
+        const loser = p.answers[p.sides[1 - win]];
+        this.room.moment('joke', { pids: [p.sides[win]], q: p.text, text: p.answers[p.sides[win]], note: `${counts[win]}:${counts[1 - win]} Stimmen${loser ? ` gegen „${loser}“` : ''}${p.bonus != null ? ' – WITZBOLD!' : ''}`, score: 2 + counts[win] + (p.bonus != null ? 2 : 0), tags: ['lustig'] });
+      }
+    }
     this.phase = 'matchReveal';
     if (p.bonus != null) this.room.fx('win');
     else this.room.fx('reveal');

@@ -55,6 +55,13 @@ export class Minderheit extends SoloGame {
     this.room.clearTimer('vote');
     this.score();
     this.phase = 'reveal';
+    {
+      const { counts, winners, winOpts } = this.result;
+      if (winners.length === 1) this.room.moment('minority', { pids: winners, q: this.q.q, text: this.q.options[winOpts[0]], note: 'als Einzige(r) – und gewinnt', score: 2, tags: ['cool'] });
+      const total = counts.reduce((n, c) => n + c, 0);
+      const max = Math.max(...counts);
+      if (total >= 3 && max === total) this.room.moment('minority', { pids: Object.keys(this.votes), q: this.q.q, text: this.q.options[counts.indexOf(max)], note: 'ALLE haben dasselbe gewählt 🐑', score: 3, tags: ['lustig'] });
+    }
     // Größte Gruppe zuerst, die kleinste (= Gewinner) zum Schluss
     const ids = this.q.options.map((_, i) => i).sort((a, b) => this.result.counts[b] - this.result.counts[a]);
     this.room.startReveal(`mh-${this.round}`, ids, { ordered: true, autoMs: 1800 }, () => {

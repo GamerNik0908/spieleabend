@@ -194,6 +194,12 @@ io.on('connection', (socket) => {
 
   socket.on('ping-time', (_, cb) => cb?.(Date.now()));
 
+  // Kompletter Rückblick (z. B. für den Video-Export beim Operator oder die Zuschauer-Ansicht)
+  socket.on('recap:get', (_, cb) => {
+    const r = room();
+    cb?.(r?.recap?.data ? { ...r.recap.data, version: r.recap.version } : null);
+  });
+
   socket.on('disconnect', () => room()?.detach(socket));
 });
 

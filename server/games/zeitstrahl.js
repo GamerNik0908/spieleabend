@@ -108,6 +108,11 @@ export class Zeitstrahl extends SoloGame {
     if (ok) at = gap;
     this.line.splice(at, 0, { ...card, ok, by: this.current });
     this.turnResult = { cardId: card.id, gap, at, lenBefore, delta: {} };
+    {
+      const left = this.line[gap - 1], right = this.line[gap];
+      const where = left && right ? `zwischen „${left.t}“ und „${right.t}“` : left ? `nach „${left.t}“` : right ? `vor „${right.t}“` : '';
+      this.room.moment('timeline', { pids: [this.current], q: DIMS[this.dim].title, text: `${card.t}: ${card.v}${this.dim === 'preis' ? ' €' : ''}`, ok, note: `gelegt ${where}`, score: ok ? (lenBefore >= 6 ? 3 : 1) : 2, tags: [ok ? 'schlau' : 'lustig'] });
+    }
     this.applyScore(ok);
     this.phase = 'result';
     this.room.fx(ok ? 'correct' : 'wrong');
